@@ -40,17 +40,49 @@ def color_to_rgb(color):
 
 def add_wall(batch, entity):
     pos = [entity["pos"]["x"], 0, entity["pos"]["y"]]
-    add_cube(batch, pos, [1, 1, 1], color=COLORS[entity["color"]])
+
+    tex_coords = (
+        "t2f",
+        (
+            0,
+            0,
+            1,
+            0,
+            1,
+            1,
+            0,
+            1,
+        ),
+    )
+    # texture coordinates
+
+    (r, g, b) = color_to_rgb(COLORS[entity["color"]])
+
+    tex_coords = ("c3B", (r, g, b, r, g, b, r, g, b, r, g, b))
+
+    x, y, z = 0, 0, 0
+    X, Y, Z = x + 1, y + 1, z + 1
+    add_cube(batch, pos, [1, 1, 1], tex_coords)
 
 
 def add_note(batch, entity):
     pos = [entity["pos"]["x"], 0, entity["pos"]["y"]]
-    add_cube(batch, pos, [1, 1, 1], color=COLORS["yellow"])
+
+    (r, g, b) = color_to_rgb(COLORS["yellow"])
+
+    tex_coords = ("c3B", (r, g, b, r, g, b, r, g, b, r, g, b))
+
+    add_cube(batch, pos, [1, 1, 1], tex_coords)
 
 
 def add_desk(batch, entity):
     pos = [entity["pos"]["x"], 0, entity["pos"]["y"]]
-    add_cube(batch, pos, [0.9, 0.4, 0.9], color=COLORS["orange"])
+
+    (r, g, b) = color_to_rgb(COLORS["orange"])
+
+    tex_coords = ("c3B", (r, g, b, r, g, b, r, g, b, r, g, b))
+
+    add_cube(batch, pos, [0.9, 0.4, 0.9], tex_coords)
 
 
 def add_link(batch, entity):
@@ -60,7 +92,21 @@ def add_link(batch, entity):
     x0, x1 = (0.0, 1.0)
     y0, y1 = (0.0, 1.0)
 
-    add_cube(batch, pos, [0.4, 0.4, 0.4], tex_coords=((x0, x1), (y0, y1)), group=texture)
+    tex_coords = (
+        "t2f",
+        (
+            x0,
+            y0,
+            x1,
+            y0,
+            x1,
+            y1,
+            x0,
+            y1,
+        ),
+    )
+
+    add_cube(batch, pos, [0.4, 0.4, 0.4], tex_coords, group=texture)
 
 def add_zoomlink(batch, entity):
     texture = get_texture('zoom.jpeg')
@@ -69,7 +115,21 @@ def add_zoomlink(batch, entity):
     x0, x1 = (0.0, 0.9)
     y0, y1 = (-0.1, 0.9)
 
-    add_cube(batch, pos, [0.6, 0.6, 0.6], color="#000000", group=texture)
+    tex_coords = (
+        "t2f",
+        (
+            x0,
+            y0,
+            x1,
+            y0,
+            x1,
+            y1,
+            x0,
+            y1,
+        ),
+    )
+
+    add_cube(batch, pos, [0.6, 0.6, 0.6], tex_coords, group=texture)
 
 def add_audioblock(batch, entity):
     texture = get_texture('audio_block.jpeg')
@@ -78,41 +138,52 @@ def add_audioblock(batch, entity):
     x0, x1 = (0.0, 1.0)
     y0, y1 = (0.0, 1.0)
 
-    add_cube(batch, pos, [0.6, 0.6, 0.6], tex_coords=((x0, x1), (y0, y1)), group=texture)
+    tex_coords = (
+        "t2f",
+        (
+            x0,
+            y0,
+            x1,
+            y0,
+            x1,
+            y1,
+            x0,
+            y1,
+        ),
+    )
+
+    add_cube(batch, pos, [0.6, 0.6, 0.6], tex_coords, group=texture)
 
 def add_avatar(batch, entity):
     texture = get_texture('avatar.png', file=io.BytesIO(PHOTOS[entity['id']]))
     pos = [entity["pos"]["x"], 0, entity["pos"]["y"]]
 
+#     (r, g, b) = color_to_rgb(COLORS["purple"])
+#     tex_coords = ("c3B", (r, g, b, r, g, b, r, g, b, r, g, b))
+
     x0, x1 = (-0.0, 0.6)
     y0, y1 = (-0.4, 0.6)
 
-    add_cube(batch, pos, [0.05, 0.8, 0.4], tex_coords=((x0, x1), (y0, y1)), group=texture)
+    tex_coords = (
+        "t2f",
+        (
+            x0,
+            y0,
+            x1,
+            y0,
+            x1,
+            y1,
+            x0,
+            y1,
+        ),
+    )
+
+    add_cube(batch, pos, [0.05, 0.8, 0.4], tex_coords, group=texture)
 
 
-def add_cube(batch, pos, size, color=None, tex_coords=None, group=None):
+def add_cube(batch, pos, size, tex_coords, group=None):
     x0, y0, z0 = pos[0] - size[0] / 2, pos[1], pos[2] - size[2] / 2
     x1, y1, z1 = pos[0] + size[0] / 2, pos[1] + size[1], pos[2] + size[2] / 2
-
-    if tex_coords:
-        ((x0, x1), (y0, y1)) = tex_coords
-        color_data = (
-                "t2f",
-                (
-                    x0,
-                    y0,
-                    x1,
-                    y0,
-                    x1,
-                    y1,
-                    x0,
-                    y1,
-                ),
-            )
-        print("Tex", color_data)
-    else:
-        (r, g, b) = color_to_rgb(color)
-        color_data = ("c3B", (r, g, b, r, g, b, r, g, b, r, g, b))
 
     batch.add(
         4,
@@ -135,7 +206,7 @@ def add_cube(batch, pos, size, color=None, tex_coords=None, group=None):
                 z0,
             ),
         ),
-        color_data,
+        tex_coords,
     )  # back
     batch.add(
         4,
@@ -158,7 +229,7 @@ def add_cube(batch, pos, size, color=None, tex_coords=None, group=None):
                 z1,
             ),
         ),
-        color_data,
+        tex_coords,
     )  # front
     batch.add(
         4,
@@ -181,7 +252,7 @@ def add_cube(batch, pos, size, color=None, tex_coords=None, group=None):
                 z0,
             ),
         ),
-        color_data,
+        tex_coords,
     )  # left
     batch.add(
         4,
@@ -204,7 +275,7 @@ def add_cube(batch, pos, size, color=None, tex_coords=None, group=None):
                 z1,
             ),
         ),
-        color_data,
+        tex_coords,
     )  # right
     batch.add(
         4,
@@ -227,7 +298,7 @@ def add_cube(batch, pos, size, color=None, tex_coords=None, group=None):
                 z1,
             ),
         ),
-        color_data,
+        tex_coords,
     )  # bottom
     batch.add(
         4,
@@ -250,7 +321,7 @@ def add_cube(batch, pos, size, color=None, tex_coords=None, group=None):
                 z0,
             ),
         ),
-        color_data,
+        tex_coords,
     )  # top
 
 
@@ -359,7 +430,9 @@ PHOTOS = {
 
 
 async def download_photo(session, avatar_id, image_path):
+    print("Fetching: ", avatar_id)
     async with session.get(image_path) as response:
+        print(response)
         PHOTOS[avatar_id] = await response.read()
 
 async def async_thread_main(queue):
@@ -368,6 +441,10 @@ async def async_thread_main(queue):
             if entity['type'] == 'Avatar' and entity['id'] not in PHOTOS:
                 await download_photo(session, entity['id'], entity['image_path'])
             queue.put(entity)
+
+
+#            add_cube(world.batch, [entity['pos']['x'], 0, entity['pos']['y']])
+#            print(entity)
 
 
 def main():
