@@ -54,59 +54,59 @@ def color_to_rgb(color):
 
 
 def add_wall(batch, entity):
-    pos = [entity["pos"]["x"], 0, entity["pos"]["y"]]
-
-    add_cube(batch, pos, [1, 1, 1], color=COLORS[entity["color"]])
+    add_cube(batch, entity['pos'], [1, 1, 1], color=COLORS[entity["color"]])
 
 
 def add_note(batch, entity):
-    pos = [entity["pos"]["x"], 0, entity["pos"]["y"]]
-    add_cube(batch, pos, [1, 1, 1], color=COLORS["yellow"])
+    add_cube(batch, entity['pos'], [1, 1, 1], color=COLORS["yellow"])
 
 
 def add_desk(batch, entity):
-    pos = [entity["pos"]["x"], 0, entity["pos"]["y"]]
-    add_cube(batch, pos, [0.9, 0.4, 0.9], color=COLORS["orange"])
+    add_cube(batch, entity['pos'], [0.9, 0.4, 0.9], color=COLORS["orange"])
 
-
-def add_link(batch, entity):
-    texture = get_texture('link.png')
-    pos = [entity["pos"]["x"], 0, entity["pos"]["y"]]
-
+def add_calendar(batch, entity):
+    texture = get_texture('calendar.png')
     x0, x1 = (0.0, 1.0)
     y0, y1 = (0.0, 1.0)
 
-    add_cube(batch, pos, [0.4, 0.4, 0.4], tex_coords=tex_coords(x0, x1, y0, y1), group=texture)
+    add_cube(batch, entity['pos'], [0.6, 0.6, 0.6], tex_coords=tex_coords(x0, x1, y0, y1), group=texture)
+
+def add_link(batch, entity):
+    texture = get_texture('link.png')
+    x0, x1 = (0.0, 1.0)
+    y0, y1 = (0.0, 1.0)
+
+    add_cube(batch, entity['pos'], [0.8, 0.8, 0.8], tex_coords=tex_coords(x0, x1, y0, y1), group=texture)
 
 def add_zoomlink(batch, entity):
     texture = get_texture('zoom.jpeg')
-    pos = [entity["pos"]["x"], 0, entity["pos"]["y"]]
 
     x0, x1 = (0.0, 0.9)
     y0, y1 = (-0.1, 0.9)
 
-    add_cube(batch, pos, [0.6, 0.6, 0.6], tex_coords=tex_coords(x0, x1, y0, y1), group=texture)
+    add_cube(batch, entity['pos'], [0.6, 0.6, 0.6], tex_coords=tex_coords(x0, x1, y0, y1), group=texture)
 
 def add_audioblock(batch, entity):
     texture = get_texture('audio_block.jpeg')
-    pos = [entity["pos"]["x"], 0, entity["pos"]["y"]]
 
     x0, x1 = (0.0, 1.0)
     y0, y1 = (0.0, 1.0)
 
-    add_cube(batch, pos, [0.6, 0.6, 0.6], tex_coords=tex_coords(x0, x1, y0, y1), group=texture)
+    add_cube(batch, entity['pos'], [0.6, 0.6, 0.6], tex_coords=tex_coords(x0, x1, y0, y1), group=texture)
 
 def add_avatar(batch, entity):
     texture = get_texture('avatar.png', file=io.BytesIO(PHOTOS[entity['id']]))
-    pos = [entity["pos"]["x"], 0, entity["pos"]["y"]]
 
     x0, x1 = (-0.0, 0.6)
     y0, y1 = (-0.4, 0.6)
 
-    add_cube(batch, pos, [0.05, 0.8, 0.4], tex_coords=tex_coords(x0,x1,y0,y1), group=texture)
+    add_cube(batch, entity['pos'], [0.05, 0.8, 0.4], tex_coords=tex_coords(x0, x1, y0, y1), group=texture)
 
+def add_floor(batch):
+    add_cube(batch, {'x': 500, 'y': 500}, [1000, 0.001, 1000], color="#ffffff")
 
 def add_cube(batch, pos, size, tex_coords=None, color=None, group=None):
+    pos = [pos["x"], 0, pos["y"]]
     x0, y0, z0 = pos[0] - size[0] / 2, pos[1], pos[2] - size[2] / 2
     x1, y1, z1 = pos[0] + size[0] / 2, pos[1] + size[1], pos[2] + size[2] / 2
 
@@ -263,7 +263,8 @@ class World:
         )
         self.window.set_mouse_visible(False)
         self.window.set_exclusive_mouse(True)
-        gl.glClearColor(0.1, 0.2, 0.3, 1)
+        (r, g, b) = color_to_rgb("#87ceeb")
+        gl.glClearColor(r / 255, g / 255, b / 255, 1)
         gl.glEnable(gl.GL_DEPTH_TEST)
         gl.glShadeModel(gl.GL_SMOOTH)
 
@@ -273,6 +274,7 @@ class World:
         pyglet.clock.schedule(self.update)
 
         self.batch = pyglet.graphics.Batch()
+        add_floor(self.batch)
 
         self.player_pos = [71, 0.6, 43]
         self.player_rot = [0, 270]
@@ -327,6 +329,8 @@ class World:
                     add_note(self.batch, entity)
                 elif entity["type"] == "AudioBlock":
                     add_audioblock(self.batch, entity)
+                elif entity["type"] == "RC::Calendar":
+                    add_calendar(self.batch, entity)
                 else:
                     print(entity['type'], entity)
 
