@@ -34,6 +34,7 @@ def get_texture(filename, file=None):
     gl.glTexParameterf(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_NEAREST)
     return pyglet.graphics.TextureGroup(image.get_texture())
 
+
 def tex_coords(x0, x1, y0, y1):
     return (
         "t2f",
@@ -49,61 +50,125 @@ def tex_coords(x0, x1, y0, y1):
         ),
     )
 
+
 def color_to_rgb(color):
     return (int(color[1:3], 16), int(color[3:5], 16), int(color[5:7], 16))
 
 
 def add_wall(batch, entity):
-    add_cube(batch, entity['pos'], [1, 1, 1], color=COLORS[entity["color"]])
+    add_cube(batch, entity["pos"], [1, 1, 1], color=COLORS[entity["color"]])
 
 
 def add_note(batch, entity):
-    add_cube(batch, entity['pos'], [1, 1, 1], color=COLORS["yellow"])
+    add_cube(batch, entity["pos"], [1, 1, 1], color=COLORS["yellow"])
 
 
 def add_desk(batch, entity):
-    add_cube(batch, entity['pos'], [0.9, 0.4, 0.9], color=COLORS["orange"])
+    add_cube(batch, entity["pos"], [0.9, 0.4, 0.9], color=COLORS["orange"])
+
 
 def add_calendar(batch, entity):
-    texture = get_texture('calendar.png')
+    texture = get_texture("calendar.png")
     x0, x1 = (0.0, 1.0)
     y0, y1 = (0.0, 1.0)
 
-    add_cube(batch, entity['pos'], [0.6, 0.6, 0.6], tex_coords=tex_coords(x0, x1, y0, y1), group=texture)
+    add_cube(
+        batch,
+        entity["pos"],
+        [0.6, 0.6, 0.6],
+        tex_coords=tex_coords(x0, x1, y0, y1),
+        group=texture,
+    )
+
 
 def add_link(batch, entity):
-    texture = get_texture('link.png')
+    texture = get_texture("link.png")
     x0, x1 = (0.0, 1.0)
     y0, y1 = (0.0, 1.0)
 
-    add_cube(batch, entity['pos'], [0.8, 0.8, 0.8], tex_coords=tex_coords(x0, x1, y0, y1), group=texture)
+    add_cube(
+        batch,
+        entity["pos"],
+        [0.8, 0.8, 0.8],
+        tex_coords=tex_coords(x0, x1, y0, y1),
+        group=texture,
+    )
+
 
 def add_zoomlink(batch, entity):
-    texture = get_texture('zoom.jpeg')
+    texture = get_texture("zoom.jpeg")
 
     x0, x1 = (0.0, 0.9)
     y0, y1 = (-0.1, 0.9)
 
-    add_cube(batch, entity['pos'], [0.6, 0.6, 0.6], tex_coords=tex_coords(x0, x1, y0, y1), group=texture)
+    add_cube(
+        batch,
+        entity["pos"],
+        [0.6, 0.6, 0.6],
+        tex_coords=tex_coords(x0, x1, y0, y1),
+        group=texture,
+    )
+
 
 def add_audioblock(batch, entity):
-    texture = get_texture('audio_block.jpeg')
+    texture = get_texture("audio_block.jpeg")
 
     x0, x1 = (0.0, 1.0)
     y0, y1 = (0.0, 1.0)
 
-    add_cube(batch, entity['pos'], [0.6, 0.6, 0.6], tex_coords=tex_coords(x0, x1, y0, y1), group=texture)
+    add_cube(
+        batch,
+        entity["pos"],
+        [0.6, 0.6, 0.6],
+        tex_coords=tex_coords(x0, x1, y0, y1),
+        group=texture,
+    )
+
+def add_audioroom(batch, entity):
+    texture = get_texture("microphone.png")
+
+    x0, x1 = (0.0, entity["width"])
+    y0, y1 = (0.0, entity["height"])
+
+    pos = entity["pos"]
+    pos['x'] += entity["width"] / 2 - 0.5
+    pos['y'] += entity["height"] / 2 - 0.5
+
+    add_cube(batch, pos, [entity["width"], 0.002, entity["height"]],
+        tex_coords=tex_coords(x0, x1, y0, y1),
+        group=texture,
+        )
+
 
 def add_avatar(batch, entity):
-    texture = get_texture('avatar.png', file=io.BytesIO(PHOTOS[entity['id']]))
+    texture = get_texture("avatar.png", file=io.BytesIO(PHOTOS[entity["id"]]))
 
     x0, x1 = (-0.0, 0.6)
     y0, y1 = (-0.4, 0.6)
 
-    add_cube(batch, entity['pos'], [0.05, 0.8, 0.4], tex_coords=tex_coords(x0, x1, y0, y1), group=texture)
+    pos = entity['pos']
+
+    add_cube(
+        batch,
+        pos,
+        [0.05, 0.8, 0.4],
+        tex_coords=tex_coords(x0, x1, y0, y1),
+        group=texture,
+    )
+
 
 def add_floor(batch):
-    add_cube(batch, {'x': 500, 'y': 500}, [1000, 0.001, 1000], color="#ffffff")
+    texture = get_texture("grid.png")
+
+    x0, x1 = (0.5, 1000.5)
+    y0, y1 = (0.5, 1000.5)
+
+    add_cube(batch, {"x": 500, "y": 500}, [1000, 0.001, 1000],
+
+        tex_coords=tex_coords(x0, x1, y0, y1),
+        group=texture
+    )
+
 
 def add_cube(batch, pos, size, tex_coords=None, color=None, group=None):
     pos = [pos["x"], 0, pos["y"]]
@@ -114,144 +179,17 @@ def add_cube(batch, pos, size, tex_coords=None, color=None, group=None):
         (r, g, b) = color_to_rgb(color)
         tex_coords = ("c3B", (r, g, b, r, g, b, r, g, b, r, g, b))
 
-    batch.add(
-        4,
-        gl.GL_QUADS,
-        group,
-        (
-            "v3f",
-            (
-                x1,
-                y0,
-                z0,
-                x0,
-                y0,
-                z0,
-                x0,
-                y1,
-                z0,
-                x1,
-                y1,
-                z0,
-            ),
-        ),
-        tex_coords,
-    )  # back
-    batch.add(
-        4,
-        gl.GL_QUADS,
-        group,
-        (
-            "v3f",
-            (
-                x0,
-                y0,
-                z1,
-                x1,
-                y0,
-                z1,
-                x1,
-                y1,
-                z1,
-                x0,
-                y1,
-                z1,
-            ),
-        ),
-        tex_coords,
-    )  # front
-    batch.add(
-        4,
-        gl.GL_QUADS,
-        group,
-        (
-            "v3f",
-            (
-                x0,
-                y0,
-                z0,
-                x0,
-                y0,
-                z1,
-                x0,
-                y1,
-                z1,
-                x0,
-                y1,
-                z0,
-            ),
-        ),
-        tex_coords,
-    )  # left
-    batch.add(
-        4,
-        gl.GL_QUADS,
-        group,
-        (
-            "v3f",
-            (
-                x1,
-                y0,
-                z1,
-                x1,
-                y0,
-                z0,
-                x1,
-                y1,
-                z0,
-                x1,
-                y1,
-                z1,
-            ),
-        ),
-        tex_coords,
-    )  # right
-    batch.add(
-        4,
-        gl.GL_QUADS,
-        group,
-        (
-            "v3f",
-            (
-                x0,
-                y0,
-                z0,
-                x1,
-                y0,
-                z0,
-                x1,
-                y0,
-                z1,
-                x0,
-                y0,
-                z1,
-            ),
-        ),
-        tex_coords,
-    )  # bottom
-    batch.add(
-        4,
-        gl.GL_QUADS,
-        group,
-        (
-            "v3f",
-            (
-                x0,
-                y1,
-                z1,
-                x1,
-                y1,
-                z1,
-                x1,
-                y1,
-                z0,
-                x0,
-                y1,
-                z0,
-            ),
-        ),
-        tex_coords,
-    )  # top
+    vertices = [
+        (x1, y0, z0, x0, y0, z0, x0, y1, z0, x1, y1, z0),
+        (x0, y0, z1, x1, y0, z1, x1, y1, z1, x0, y1, z1),
+        (x0, y0, z0, x0, y0, z1, x0, y1, z1, x0, y1, z0),
+        (x1, y0, z1, x1, y0, z0, x1, y1, z0, x1, y1, z1),
+        (x0, y0, z0, x1, y0, z0, x1, y0, z1, x0, y0, z1),
+        (x0, y1, z1, x1, y1, z1, x1, y1, z0, x0, y1, z0),
+    ]
+
+    for v in vertices:
+        batch.add(4, gl.GL_QUADS, group, ("v3f", v), tex_coords)
 
 
 class World:
@@ -276,7 +214,7 @@ class World:
         self.batch = pyglet.graphics.Batch()
         add_floor(self.batch)
 
-        self.player_pos = [71, 0.6, 43]
+        self.player_pos = [45, 0.6, 53]
         self.player_rot = [0, 270]
 
         self.keys = key.KeyStateHandler()
@@ -331,8 +269,10 @@ class World:
                     add_audioblock(self.batch, entity)
                 elif entity["type"] == "RC::Calendar":
                     add_calendar(self.batch, entity)
+                elif entity["type"] == "AudioRoom":
+                    add_audioroom(self.batch, entity)
                 else:
-                    print(entity['type'], entity)
+                    print(entity["type"], entity)
 
         except queue.Empty:
             pass
@@ -341,16 +281,16 @@ class World:
         rotY = -self.player_rot[1] / 180 * math.pi
         dx, dz = s * math.sin(rotY), s * math.cos(rotY)
 
-        if self.keys[key.UP]:
+        if self.keys[key.COMMA] or self.keys[key.UP]:
             self.player_pos[0] += dx
             self.player_pos[2] -= dz
-        elif self.keys[key.DOWN]:
+        if self.keys[key.O] or self.keys[key.DOWN]:
             self.player_pos[0] -= dx
             self.player_pos[2] += dz
-        elif self.keys[key.LEFT]:
+        if self.keys[key.A] or self.keys[key.LEFT]:
             self.player_pos[0] -= dz
             self.player_pos[2] -= dx
-        elif self.keys[key.RIGHT]:
+        if self.keys[key.E] or self.keys[key.RIGHT]:
             self.player_pos[0] += dz
             self.player_pos[2] += dx
 
@@ -360,15 +300,17 @@ class World:
 
 PHOTOS = {}
 
+
 async def download_photo(session, avatar_id, image_path):
     async with session.get(image_path) as response:
         PHOTOS[avatar_id] = await response.read()
 
+
 async def async_thread_main(queue):
     async with aiohttp.ClientSession() as session:
         async for entity in rctogether.WebsocketSubscription():
-            if entity['type'] == 'Avatar' and entity['id'] not in PHOTOS:
-                await download_photo(session, entity['id'], entity['image_path'])
+            if entity["type"] == "Avatar" and entity["id"] not in PHOTOS:
+                await download_photo(session, entity["id"], entity["image_path"])
             queue.put(entity)
 
 
