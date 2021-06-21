@@ -5,12 +5,18 @@ import asyncio
 import queue
 import functools
 import aiohttp
+import ctypes
 
 import rctogether
 
 from pyglet import gl
 from pyglet.window import key
 import pyglet
+
+from camera import Camera
+from vector import Vector
+import shader
+import texture_manager
 
 COLORS = {
     "gray": "#919c9c",
@@ -23,33 +29,21 @@ COLORS = {
 }
 
 
-@functools.lru_cache(maxsize=None)
-def load_image(filename, file=None):
-    return pyglet.image.load(filename, file=file)
+# @functools.lru_cache(maxsize=None)
+# def load_image(filename, file=None):
+#     return pyglet.image.load(filename, file=file)
 
 
-def get_texture(filename, file=None):
-    image = load_image(filename, file=file)
-    gl.glTexParameterf(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER, gl.GL_NEAREST)
-    gl.glTexParameterf(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_NEAREST)
-    return pyglet.graphics.TextureGroup(image.get_texture())
+# @functools.lru_cache(maxsize=None)
+# def get_texture(filename, file=None):
+#     image = load_image(filename, file=file)
+#     gl.glTexParameterf(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER, gl.GL_NEAREST)
+#     gl.glTexParameterf(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_NEAREST)
+#     return pyglet.graphics.TextureGroup(image.get_texture())
 
 
-def tex_coords(x0, x1, y0, y1):
-    return (
-        "t2f",
-        (
-            x0,
-            y0,
-            x1,
-            y0,
-            x1,
-            y1,
-            x0,
-            y1,
-        ),
-    )
-
+def tex_coords(x0, x1, y0, y1, texture_index):
+    return [ x0, y0, texture_index, x1, y0, texture_index, x1, y1, texture_index, x0, y1, texture_index ]
 
 def color_to_rgb(color):
     return (int(color[1:3], 16), int(color[3:5], 16), int(color[5:7], 16))
@@ -64,11 +58,16 @@ def add_note(batch, entity):
 
 
 def add_desk(batch, entity):
-    add_cube(batch, entity["pos"], [0.9, 0.4, 0.9], color=COLORS["orange"])
+    add_cube(batch, entity["pos"], [0.9, 0.04, 0.9], color=COLORS["orange"], y_offset=0.35)
+    add_cube(batch, entity["pos"], [0.04, 0.35, 0.04], color="#33333", x_offset=-0.4, z_offset=-0.4)
+    add_cube(batch, entity["pos"], [0.04, 0.35, 0.04], color="#33333", x_offset=-0.4, z_offset=0.4)
+    add_cube(batch, entity["pos"], [0.04, 0.35, 0.04], color="#33333", x_offset=0.4, z_offset=-0.4)
+    add_cube(batch, entity["pos"], [0.04, 0.35, 0.04], color="#33333", x_offset=0.4, z_offset=0.4)
 
 
 def add_calendar(batch, entity):
-    texture = get_texture("calendar.png")
+    texture_index = batch.texture_manager.textures.index("calendar")
+
     x0, x1 = (0.0, 1.0)
     y0, y1 = (0.0, 1.0)
 
@@ -76,13 +75,13 @@ def add_calendar(batch, entity):
         batch,
         entity["pos"],
         [0.6, 0.6, 0.6],
-        tex_coords=tex_coords(x0, x1, y0, y1),
-        group=texture,
+        texture=tex_coords(x0, x1, y0, y1, texture_index),
     )
 
 
 def add_link(batch, entity):
-    texture = get_texture("link.png")
+    texture_index = batch.texture_manager.textures.index("link")
+
     x0, x1 = (0.0, 1.0)
     y0, y1 = (0.0, 1.0)
 
@@ -90,13 +89,12 @@ def add_link(batch, entity):
         batch,
         entity["pos"],
         [0.8, 0.8, 0.8],
-        tex_coords=tex_coords(x0, x1, y0, y1),
-        group=texture,
+        texture=tex_coords(x0, x1, y0, y1, texture_index),
     )
 
 
 def add_zoomlink(batch, entity):
-    texture = get_texture("zoom.jpeg")
+    texture_index = batch.texture_manager.textures.index("zoom")
 
     x0, x1 = (0.0, 0.9)
     y0, y1 = (-0.1, 0.9)
@@ -105,13 +103,12 @@ def add_zoomlink(batch, entity):
         batch,
         entity["pos"],
         [0.6, 0.6, 0.6],
-        tex_coords=tex_coords(x0, x1, y0, y1),
-        group=texture,
+        texture=tex_coords(x0, x1, y0, y1, texture_index),
     )
 
 
 def add_audioblock(batch, entity):
-    texture = get_texture("audio_block.jpeg")
+    texture_index = batch.texture_manager.textures.index("audio_block")
 
     x0, x1 = (0.0, 1.0)
     y0, y1 = (0.0, 1.0)
@@ -120,12 +117,11 @@ def add_audioblock(batch, entity):
         batch,
         entity["pos"],
         [0.6, 0.6, 0.6],
-        tex_coords=tex_coords(x0, x1, y0, y1),
-        group=texture,
+        texture=tex_coords(x0, x1, y0, y1, texture_index),
     )
 
 def add_audioroom(batch, entity):
-    texture = get_texture("microphone.png")
+    texture_index = batch.texture_manager.textures.index("microphone")
 
     x0, x1 = (0.0, entity["width"])
     y0, y1 = (0.0, entity["height"])
@@ -135,13 +131,16 @@ def add_audioroom(batch, entity):
     pos['y'] += entity["height"] / 2 - 0.5
 
     add_cube(batch, pos, [entity["width"], 0.002, entity["height"]],
-        tex_coords=tex_coords(x0, x1, y0, y1),
-        group=texture,
+        texture=tex_coords(x0, x1, y0, y1, texture_index),
         )
 
 
 def add_avatar(batch, entity):
-    texture = get_texture("avatar.png", file=io.BytesIO(PHOTOS[entity["id"]]))
+    entity_id = entity['id']
+    batch.texture_manager.add_texture(entity_id, PHOTOS[entity_id])
+    texture_index = batch.texture_manager.textures.index(entity_id)
+  #  texture = get_texture("avatar.png", file=io.BytesIO())
+    texture_index = 0
 
     x0, x1 = (-0.0, 0.6)
     y0, y1 = (-0.4, 0.6)
@@ -152,45 +151,146 @@ def add_avatar(batch, entity):
         batch,
         pos,
         [0.05, 0.8, 0.4],
-        tex_coords=tex_coords(x0, x1, y0, y1),
-        group=texture,
+        texture=tex_coords(x0, x1, y0, y1, texture_index),
     )
 
 
 def add_floor(batch):
-    texture = get_texture("grid.png")
+    texture_index = batch.texture_manager.textures.index("grid")
 
     x0, x1 = (0.5, 1000.5)
     y0, y1 = (0.5, 1000.5)
 
-    add_cube(batch, {"x": 500, "y": 500}, [1000, 0.001, 1000],
-
-        tex_coords=tex_coords(x0, x1, y0, y1),
-        group=texture
+    add_cube(
+        batch,
+        {"x": 500, "y": 500},
+        [1000, 0.001, 1000],
+        color = "#eeeeee",
+        texture=tex_coords(x0, x1, y0, y1, texture_index),
     )
 
 
-def add_cube(batch, pos, size, tex_coords=None, color=None, group=None):
-    pos = [pos["x"], 0, pos["y"]]
-    x0, y0, z0 = pos[0] - size[0] / 2, pos[1], pos[2] - size[2] / 2
-    x1, y1, z1 = pos[0] + size[0] / 2, pos[1] + size[1], pos[2] + size[2] / 2
+def add_cube(batch, *a, **k):
+    batch.add_cube(*a, **k)
 
-    if color:
+class Scene:
+    def __init__(self, texture_manager):
+        self.vertices = []
+        self.colors = []
+        self.normals = []
+        self.tex_coords = []
+        self.dirty = True
+
+        self.texture_manager = texture_manager
+
+    def add_cube(self, pos, size, texture=None, color=None, group=None, x_offset=0, y_offset=0, z_offset=0):
+        pos = [pos["x"], 0, pos["y"]]
+        x0, y0, z0 = x_offset + pos[0] - size[0] / 2, y_offset + pos[1], z_offset + pos[2] - size[2] / 2
+        x1, y1, z1 = x_offset + pos[0] + size[0] / 2, y_offset + pos[1] + size[1], z_offset + pos[2] + size[2] / 2
+
+        color = color or "#114433"
+
         (r, g, b) = color_to_rgb(color)
-        tex_coords = ("c3B", (r, g, b, r, g, b, r, g, b, r, g, b))
+        colors = (r / 256, g / 256, b / 256) * 4
 
-    vertices = [
-        (x1, y0, z0, x0, y0, z0, x0, y1, z0, x1, y1, z0),
-        (x0, y0, z1, x1, y0, z1, x1, y1, z1, x0, y1, z1),
-        (x0, y0, z0, x0, y0, z1, x0, y1, z1, x0, y1, z0),
-        (x1, y0, z1, x1, y0, z0, x1, y1, z0, x1, y1, z1),
-        (x0, y0, z0, x1, y0, z0, x1, y0, z1, x0, y0, z1),
-        (x0, y1, z1, x1, y1, z1, x1, y1, z0, x0, y1, z0),
-    ]
+        if not texture:
+            texture = tex_coords(0, 0, 1, 1, 0)
 
-    for v in vertices:
-        batch.add(4, gl.GL_QUADS, group, ("v3f", v), tex_coords)
+        vertices = [
+            (x1, y0, z0, x0, y0, z0, x0, y1, z0, x1, y1, z0), # Back
+            (x0, y0, z1, x1, y0, z1, x1, y1, z1, x0, y1, z1), # Front
+            (x0, y0, z0, x0, y0, z1, x0, y1, z1, x0, y1, z0), # Left
+            (x1, y0, z1, x1, y0, z0, x1, y1, z0, x1, y1, z1), # Right
+            (x0, y0, z0, x1, y0, z0, x1, y0, z1, x0, y0, z1), # Bottom
+            (x0, y1, z1, x1, y1, z1, x1, y1, z0, x0, y1, z0), # Top
+        ]
 
+        normals = [
+            (0, 0, -1),
+            (0, 0, 1),
+            (-1, 0, 0),
+            (1, 0, 0),
+            (0, -1, 0),
+            (0, 1, 0)
+        ]
+
+        for (v, n) in zip(vertices, normals):
+            self.vertices.extend(v)
+            self.colors.extend(colors)
+            self.normals.extend(n * 4)
+            self.tex_coords.extend(texture)
+
+        self.dirty = True
+
+#            batch.add(4, gl.GL_QUADS, group, ("v3f", v), tex_coords)
+
+    def draw(self):
+        if self.dirty:
+            print("Required to regen buffers!")
+
+            # Create a vertex array
+            self.vao = gl.GLuint(0)
+            gl.glGenVertexArrays(1, ctypes.byref(self.vao))
+            gl.glBindVertexArray(self.vao)
+
+            # create vertex position vbo
+            self.vertex_position_vbo = gl.GLuint(0)
+            gl.glGenBuffers(1, ctypes.byref(self.vertex_position_vbo))
+            gl.glBindBuffer(gl.GL_ARRAY_BUFFER, self.vertex_position_vbo)
+
+            gl.glBufferData(
+                    gl.GL_ARRAY_BUFFER,
+                    ctypes.sizeof(gl.GLfloat * len(self.vertices)),
+                    (gl.GLfloat * len(self.vertices))(*self.vertices),
+                    gl.GL_STATIC_DRAW)
+            gl.glVertexAttribPointer(0, 3, gl.GL_FLOAT, gl.GL_FALSE, 0, 0)
+            gl.glEnableVertexAttribArray(0)
+
+            # create color data vbo
+            self.color_vbo = gl.GLuint(0)
+            gl.glGenBuffers(1, ctypes.byref(self.color_vbo))
+            gl.glBindBuffer(gl.GL_ARRAY_BUFFER, self.color_vbo)
+
+            gl.glBufferData(
+                    gl.GL_ARRAY_BUFFER,
+                    ctypes.sizeof(gl.GLfloat * len(self.colors)),
+                    (gl.GLfloat * len(self.colors))(*self.colors),
+                    gl.GL_STATIC_DRAW)
+
+            gl.glVertexAttribPointer(1, 3, gl.GL_FLOAT, gl.GL_FALSE, 0, 0)
+            gl.glEnableVertexAttribArray(1)
+
+            # create normal data vbo
+            normal_vbo = gl.GLuint(0)
+            gl.glGenBuffers(1, ctypes.byref(normal_vbo))
+            gl.glBindBuffer(gl.GL_ARRAY_BUFFER, normal_vbo)
+
+            gl.glBufferData(
+                    gl.GL_ARRAY_BUFFER,
+                    ctypes.sizeof(gl.GLfloat * len(self.normals)),
+                    (gl.GLfloat * len(self.normals))(*self.normals),
+                    gl.GL_STATIC_DRAW)
+
+            gl.glVertexAttribPointer(2, 3, gl.GL_FLOAT, gl.GL_FALSE, 0, 0)
+            gl.glEnableVertexAttribArray(2)
+
+            # create tex_coords data vbo
+            tex_coords_vbo = gl.GLuint(0)
+            gl.glGenBuffers(1, ctypes.byref(tex_coords_vbo))
+            gl.glBindBuffer(gl.GL_ARRAY_BUFFER, tex_coords_vbo)
+
+            gl.glBufferData(
+                    gl.GL_ARRAY_BUFFER,
+                    ctypes.sizeof(gl.GLfloat * len(self.tex_coords)),
+                    (gl.GLfloat * len(self.tex_coords))(*self.tex_coords),
+                    gl.GL_STATIC_DRAW)
+
+            gl.glVertexAttribPointer(3, 3, gl.GL_FLOAT, gl.GL_FALSE, 0, 0)
+            gl.glEnableVertexAttribArray(3)
+
+            self.dirty = False
+
+        gl.glDrawArrays(gl.GL_QUADS, 0, len(self.vertices))
 
 class World:
     def __init__(self, queue):
@@ -211,29 +311,48 @@ class World:
         self.window.event(self.on_key_press)
         pyglet.clock.schedule(self.update)
 
-        self.batch = pyglet.graphics.Batch()
+        self.shader = shader.Shader("vert.glsl", "frag.glsl")
+        self.shader_sampler_location = self.shader.find_uniform(b"texture_array_sampler")
+        self.shader.use()
+
+
+        tm = texture_manager.TextureManager(128, 128, 8)
+        for name in ["empty", "audio_block", "calendar", "grid", "link", "microphone", "note", "zoom"]:
+            tm.add_texture(name)
+        tm.generate_mipmaps()
+
+        gl.glActiveTexture(gl.GL_TEXTURE0)
+        gl.glBindTexture(gl.GL_TEXTURE_2D_ARRAY, tm.texture_array)
+
+        self.batch = Scene(tm)
         add_floor(self.batch)
 
-        self.player_pos = [45, 0.6, 53]
-        self.player_rot = [0, 270]
+        tm = texture_manager.TextureManager(150, 150, 50)
+
+        tm.generate_mipmaps()
+        gl.glActiveTexture(gl.GL_TEXTURE1)
+        gl.glBindTexture(gl.GL_TEXTURE_2D_ARRAY, tm.texture_array)
+
+        self.avatars = Scene(tm)
+
+        self.camera = Camera(
+                self.shader,
+                self.window.width,
+                self.window.height,
+                Vector([45, 0.6, 53]),
+                Vector([0, 90])
+            )
 
         self.keys = key.KeyStateHandler()
         self.window.push_handlers(self.keys)
 
-    def push(self, pos, rot):
-        gl.glPushMatrix()
-        gl.glRotatef(-rot[0], 1, 0, 0)
-        gl.glRotatef(-rot[1], 0, 1, 0)
-        gl.glTranslatef(-pos[0], -pos[1], -pos[2])
-
     def on_key_press(self, KEY, MOD):
         if KEY == key.ESCAPE:
-            print(self.player_pos)
+            print(self.camera.position)
             self.window.close()
 
     def on_mouse_motion(self, x, y, dx, dy):
-        self.player_rot[0] += dy / 6
-        self.player_rot[1] -= dx / 6
+        self.camera.update_mouse(Vector([dy/6, dx/6]))
 
     def on_draw(self):
         self.window.clear()
@@ -243,9 +362,12 @@ class World:
         gl.glMatrixMode(gl.GL_MODELVIEW)
         gl.glLoadIdentity()
 
-        self.push(self.player_pos, self.player_rot)
+        self.camera.apply()
+
+        gl.glUniform1i(self.shader_sampler_location, 0)
         self.batch.draw()
-        gl.glPopMatrix()
+#        gl.glUniform1i(self.shader_sampler_location, 1)
+#        self.avatars.draw()
 
     def update(self, dt):
         try:
@@ -256,7 +378,7 @@ class World:
                 elif entity["type"] == "Desk":
                     add_desk(self.batch, entity)
                 elif entity["type"] == "Avatar":
-                    add_avatar(self.batch, entity)
+                    add_avatar(self.avatars, entity)
                 elif entity["type"] == "ZoomLink":
                     add_zoomlink(self.batch, entity)
                 elif entity["type"] == "Bot":
@@ -277,22 +399,17 @@ class World:
         except queue.Empty:
             pass
 
-        s = dt * 5
-        rotY = -self.player_rot[1] / 180 * math.pi
-        dx, dz = s * math.sin(rotY), s * math.cos(rotY)
-
+        input_vector = Vector([0, 0, 0])
         if self.keys[key.COMMA] or self.keys[key.UP]:
-            self.player_pos[0] += dx
-            self.player_pos[2] -= dz
+            input_vector += Vector([0, 0, 1])
         if self.keys[key.O] or self.keys[key.DOWN]:
-            self.player_pos[0] -= dx
-            self.player_pos[2] += dz
+            input_vector += Vector([0, 0, -1])
         if self.keys[key.A] or self.keys[key.LEFT]:
-            self.player_pos[0] -= dz
-            self.player_pos[2] -= dx
+            input_vector += Vector([-1, 0, 0])
         if self.keys[key.E] or self.keys[key.RIGHT]:
-            self.player_pos[0] += dz
-            self.player_pos[2] += dx
+            input_vector += Vector([1, 0, 0])
+
+        self.camera.update(dt, input_vector)
 
 
 # async def async_2d_avatar():
@@ -301,18 +418,50 @@ class World:
 PHOTOS = {}
 
 
+def photo_path(avatar_id, extension):
+    return "photos/%d.%s" % (avatar_id, extension)
+
+def get_photo_ext(avatar_id, extension):
+    try:
+        with open(photo_path(avatar_id, extension), "rb") as fh:
+            return fh.read()
+    except FileNotFoundError:
+        return None
+
+async def get_photo(session, avatar_id, image_path):
+    image_data = (
+        get_photo_ext(avatar_id, "jpeg")
+        or get_photo_ext(avatar_id, "png") \
+        or await download_photo(session, avatar_id, image_path))
+
+    PHOTOS[avatar_id] = image_data
+    return image_data
+
+
 async def download_photo(session, avatar_id, image_path):
+    print("FETCH: ", image_path)
     async with session.get(image_path) as response:
-        PHOTOS[avatar_id] = await response.read()
+        image_data = await response.read()
+
+        if response.content_type == 'image/jpeg':
+            extension = 'jpeg'
+        elif response.content_type == 'image/png':
+            extension = 'png'
+
+        with open(photo_path(avatar_id, extension), 'wb') as fh:
+            fh.write(image_data)
+
+    return image_data
+
+
 
 
 async def async_thread_main(queue):
     async with aiohttp.ClientSession() as session:
         async for entity in rctogether.WebsocketSubscription():
             if entity["type"] == "Avatar" and entity["id"] not in PHOTOS:
-                await download_photo(session, entity["id"], entity["image_path"])
+                await get_photo(session, entity["id"], entity["image_path"])
             queue.put(entity)
-
 
 def main():
     entity_queue = queue.Queue()
