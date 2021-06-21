@@ -237,7 +237,7 @@ class VertexBufferObject:
         gl.glGenBuffers(1, ctypes.byref(self._id))
 
     def bind(self):
-        gl.glBindBuffer(gl.GL_ARRAY_BUFFER, self.vertex_position_vbo)
+        gl.glBindBuffer(gl.GL_ARRAY_BUFFER, self._id)
 
 
 class Scene:
@@ -253,17 +253,10 @@ class Scene:
         self.vao = VertexArrayObject()
         self.vao.bind()
 
-        self.vertex_position_vbo = gl.GLuint(0)
-        gl.glGenBuffers(1, ctypes.byref(self.vertex_position_vbo))
-
-        self.color_vbo = gl.GLuint(0)
-        gl.glGenBuffers(1, ctypes.byref(self.color_vbo))
-
-        self.normal_vbo = gl.GLuint(0)
-        gl.glGenBuffers(1, ctypes.byref(self.normal_vbo))
-
-        self.tex_coords_vbo = gl.GLuint(0)
-        gl.glGenBuffers(1, ctypes.byref(self.tex_coords_vbo))
+        self.vertex_position_vbo = VertexBufferObject()
+        self.color_vbo = VertexBufferObject()
+        self.normal_vbo = VertexBufferObject()
+        self.tex_coords_vbo = VertexBufferObject()
 
     def add_cube(
         self,
@@ -315,59 +308,25 @@ class Scene:
 
         self.dirty = True
 
-    #            batch.add(4, gl.GL_QUADS, group, ("v3f", v), tex_coords)
-
     def regenerate_buffers(self):
         print("Required to regen buffers!")
 
         # create vertex position vbo
-        gl.glBindBuffer(gl.GL_ARRAY_BUFFER, self.vertex_position_vbo)
-        gl.glBufferData(
-            gl.GL_ARRAY_BUFFER,
-            ctypes.sizeof(gl.GLfloat * len(self.vertices)),
-            (gl.GLfloat * len(self.vertices))(*self.vertices),
-            gl.GL_STATIC_DRAW,
-        )
-        gl.glVertexAttribPointer(0, 3, gl.GL_FLOAT, gl.GL_FALSE, 0, 0)
-        gl.glEnableVertexAttribArray(0)
+        for (vbo, data, layout_offset) in [
+                (self.vertex_position_vbo, self.vertices, 0),
+                (self.color_vbo, self.colors, 1),
+                (self.normal_vbo, self.normals, 2),
+                (self.tex_coords_vbo, self.tex_coords, 3)]:
+            vbo.bind()
+            gl.glBufferData(
+                gl.GL_ARRAY_BUFFER,
+                ctypes.sizeof(gl.GLfloat * len(data)),
+                (gl.GLfloat * len(self.vertices))(*data),
+                gl.GL_STATIC_DRAW,
+            )
+            gl.glVertexAttribPointer(layout_offset, 3, gl.GL_FLOAT, gl.GL_FALSE, 0, 0)
+            gl.glEnableVertexAttribArray(layout_offset)
 
-        # create color data vbo
-        gl.glBindBuffer(gl.GL_ARRAY_BUFFER, self.color_vbo)
-
-        gl.glBufferData(
-            gl.GL_ARRAY_BUFFER,
-            ctypes.sizeof(gl.GLfloat * len(self.colors)),
-            (gl.GLfloat * len(self.colors))(*self.colors),
-            gl.GL_STATIC_DRAW,
-        )
-
-        gl.glVertexAttribPointer(1, 3, gl.GL_FLOAT, gl.GL_FALSE, 0, 0)
-        gl.glEnableVertexAttribArray(1)
-
-        # create normal data vbo
-        gl.glBindBuffer(gl.GL_ARRAY_BUFFER, self.normal_vbo)
-
-        gl.glBufferData(
-            gl.GL_ARRAY_BUFFER,
-            ctypes.sizeof(gl.GLfloat * len(self.normals)),
-            (gl.GLfloat * len(self.normals))(*self.normals),
-            gl.GL_STATIC_DRAW,
-        )
-
-        gl.glVertexAttribPointer(2, 3, gl.GL_FLOAT, gl.GL_FALSE, 0, 0)
-        gl.glEnableVertexAttribArray(2)
-
-        # create tex_coords data vbo
-        gl.glBindBuffer(gl.GL_ARRAY_BUFFER, self.tex_coords_vbo)
-
-        gl.glBufferData(
-            gl.GL_ARRAY_BUFFER,
-            ctypes.sizeof(gl.GLfloat * len(self.tex_coords)),
-            (gl.GLfloat * len(self.tex_coords))(*self.tex_coords),
-            gl.GL_STATIC_DRAW,
-        )
-        gl.glVertexAttribPointer(3, 3, gl.GL_FLOAT, gl.GL_FALSE, 0, 0)
-        gl.glEnableVertexAttribArray(3)
 
     def draw(self, shader_sampler_location):
         self.vao.bind()
