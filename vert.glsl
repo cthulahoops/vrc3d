@@ -10,12 +10,11 @@ layout(location = 3) in vec3 tex_coords;
 out vec3 local_color;
 out vec3 local_normal;
 out vec3 interpolated_tex_coords;
-out float fog;
+out vec3 interpolated_position;
 
 // out float interpolated_shading_value;
 
 uniform mat4 matrix;
-uniform vec3 camera;
 
 void main(void) {
 	local_color = color;
@@ -24,7 +23,8 @@ void main(void) {
 	interpolated_tex_coords = tex_coords;
 
 //	interpolated_shading_value = shading_value;
-	fog = clamp(1 - length(camera - vertex_position) / 30, 0.5, 1);
+
+	interpolated_position = vertex_position;
 
 	gl_Position = matrix * vec4(vertex_position, 1.0);
 
