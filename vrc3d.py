@@ -15,7 +15,7 @@ import pyglet
 
 from camera import Camera
 from vector import Vector
-import shader
+from shader import Shader
 import texture_manager
 
 COLORS = {
@@ -27,19 +27,6 @@ COLORS = {
     "purple": "#956bc3",
     "yellow": "#e7dd6f",
 }
-
-
-# @functools.lru_cache(maxsize=None)
-# def load_image(filename, file=None):
-#     return pyglet.image.load(filename, file=file)
-
-
-# @functools.lru_cache(maxsize=None)
-# def get_texture(filename, file=None):
-#     image = load_image(filename, file=file)
-#     gl.glTexParameterf(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER, gl.GL_NEAREST)
-#     gl.glTexParameterf(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_NEAREST)
-#     return pyglet.graphics.TextureGroup(image.get_texture())
 
 
 def tex_coords(x0, x1, y0, y1, texture_index):
@@ -337,7 +324,7 @@ class Scene:
                 )
                 gl.glEnableVertexAttribArray(layout_offset)
 
-    def draw(self, shader_sampler_location):
+    def draw(self, shader):
         with self.vao:
             if self.dirty:
                 self.regenerate_buffers()
@@ -347,8 +334,7 @@ class Scene:
                 gl.glBindTexture(
                     gl.GL_TEXTURE_2D_ARRAY, self.texture_manager.texture_array
                 )
-                gl.glUniform1i(shader_sampler_location, 1)
-
+                shader["texture_array_sampler"] = 1
                 gl.glDrawArrays(gl.GL_QUADS, 0, len(self.vertices))
 
 
@@ -371,11 +357,7 @@ class World:
         self.window.event(self.on_key_press)
         pyglet.clock.schedule(self.update)
 
-        self.shader = shader.Shader("vert.glsl", "frag.glsl")
-        self.shader_sampler_location = self.shader.find_uniform(
-            b"texture_array_sampler"
-        )
-        self.shader_tile_location = self.shader.find_uniform(b"tile_texture")
+        self.shader = Shader("vert.glsl", "frag.glsl")
         self.shader.use()
 
         tm = texture_manager.TextureManager(128, 128, 8)
@@ -426,10 +408,10 @@ class World:
     def on_draw(self):
         self.window.clear()
         self.camera.apply()
-        gl.glUniform1i(self.shader_tile_location, 1)
-        self.batch.draw(self.shader_sampler_location)
-        gl.glUniform1i(self.shader_tile_location, 0)
-        self.avatars.draw(self.shader_sampler_location)
+        self.shader["tile_texture"] = 1
+        self.batch.draw(self.shader)
+        self.shader["tile_texture"] = 0
+        self.avatars.draw(self.shader)
 
     def update(self, dt):
         try:

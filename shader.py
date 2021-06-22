@@ -1,5 +1,9 @@
+import functools
 import ctypes
 import pyglet.gl as gl
+
+from matrix import Matrix
+from vector import Vector
 
 
 class Shader_error(Exception):
@@ -65,8 +69,24 @@ class Shader:
     def __del__(self):
         gl.glDeleteProgram(self.program)
 
+    @functools.lru_cache
     def find_uniform(self, name):
-        return gl.glGetUniformLocation(self.program, ctypes.create_string_buffer(name))
+        location = gl.glGetUniformLocation(self.program, ctypes.create_string_buffer(name.encode('utf-8')))
+        if location < 0:
+            raise ValueError("Invalid uniform: %r" % (name,))
+        return location
+
+    def __setitem__(self, key, value):
+        location = self.find_uniform(key)
+        if isinstance(value, Matrix):
+            gl.glUniformMatrix4fv(
+                location, 1, gl.GL_FALSE, (gl.GLfloat * 16)(*sum(value.data, []))
+            )
+        elif isinstance(value, Vector):
+            gl.glUniform3f(location, value.x, value.y, value.z)
+        else:
+            gl.glUniform1i(location, value)
+
 
     def uniform_matrix(self, location, matrix):
         gl.glUniformMatrix4fv(

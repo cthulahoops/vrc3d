@@ -17,11 +17,7 @@ class Camera:
         self.p_matrix = matrix.Matrix()
 
         # shaders
-
         self.shader = shader
-        self.shader_matrix_location = self.shader.find_uniform(b"matrix")
-        self.shader_camera_location = self.shader.find_uniform(b"camera")
-        print(self.shader_matrix_location, self.shader_camera_location)
 
     def update(self, dt, input_vector):
         s = dt * 5
@@ -54,5 +50,6 @@ class Camera:
         # modelviewprojection matrix
 
         mvp_matrix = self.mv_matrix * self.p_matrix
-        self.shader.uniform_matrix(self.shader_matrix_location, mvp_matrix)
-        self.shader.uniform_vec3(self.shader_camera_location, self.position)
+
+        self.shader["matrix"] = mvp_matrix
+        self.shader["camera"] = self.position
