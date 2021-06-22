@@ -192,7 +192,7 @@ def add_avatar(batch, entity):
     #  texture = get_texture("avatar.png", file=io.BytesIO())
 
     x0, x1 = (-0.0, 1.0)
-    y0, y1 = (-0.0, 2.0)
+    y0, y1 = (-1.0, 1.0)
 
     pos = entity["pos"]
 
@@ -228,16 +228,22 @@ class VertexArrayObject:
         self._id = gl.GLuint(0)
         gl.glGenVertexArrays(1, ctypes.byref(self._id))
 
-    def bind(self):
+    def __enter__(self):
         gl.glBindVertexArray(self._id)
+
+    def __exit__(self, exc_type, exc_value, exc_traceback):
+        gl.glBindVertexArray(0)
 
 class VertexBufferObject:
     def __init__(self):
         self._id = gl.GLuint(0)
         gl.glGenBuffers(1, ctypes.byref(self._id))
 
-    def bind(self):
+    def __enter__(self):
         gl.glBindBuffer(gl.GL_ARRAY_BUFFER, self._id)
+
+    def __exit__(self, exc_type, exc_value, exc_traceback):
+        gl.glBindBuffer(gl.GL_ARRAY_BUFFER, 0)
 
 
 class Scene:
@@ -251,12 +257,11 @@ class Scene:
         self.texture_manager = texture_manager
 
         self.vao = VertexArrayObject()
-        self.vao.bind()
-
-        self.vertex_position_vbo = VertexBufferObject()
-        self.color_vbo = VertexBufferObject()
-        self.normal_vbo = VertexBufferObject()
-        self.tex_coords_vbo = VertexBufferObject()
+        with self.vao:
+            self.vertex_position_vbo = VertexBufferObject()
+            self.color_vbo = VertexBufferObject()
+            self.normal_vbo = VertexBufferObject()
+            self.tex_coords_vbo = VertexBufferObject()
 
     def add_cube(
         self,
@@ -317,31 +322,30 @@ class Scene:
                 (self.color_vbo, self.colors, 1),
                 (self.normal_vbo, self.normals, 2),
                 (self.tex_coords_vbo, self.tex_coords, 3)]:
-            vbo.bind()
-            gl.glBufferData(
-                gl.GL_ARRAY_BUFFER,
-                ctypes.sizeof(gl.GLfloat * len(data)),
-                (gl.GLfloat * len(self.vertices))(*data),
-                gl.GL_STATIC_DRAW,
-            )
-            gl.glVertexAttribPointer(layout_offset, 3, gl.GL_FLOAT, gl.GL_FALSE, 0, 0)
-            gl.glEnableVertexAttribArray(layout_offset)
+            with vbo:
+                gl.glBufferData(
+                    gl.GL_ARRAY_BUFFER,
+                    ctypes.sizeof(gl.GLfloat * len(data)),
+                    (gl.GLfloat * len(self.vertices))(*data),
+                    gl.GL_STATIC_DRAW,
+                )
+                gl.glVertexAttribPointer(layout_offset, 3, gl.GL_FLOAT, gl.GL_FALSE, 0, 0)
+                gl.glEnableVertexAttribArray(layout_offset)
 
 
     def draw(self, shader_sampler_location):
-        self.vao.bind()
+        with self.vao:
+            if self.dirty:
+                self.regenerate_buffers()
+                self.dirty = False
 
-        if self.dirty:
-            self.regenerate_buffers()
-            self.dirty = False
+            if self.vertices:
+                gl.glBindTexture(
+                    gl.GL_TEXTURE_2D_ARRAY, self.texture_manager.texture_array
+                )
+                gl.glUniform1i(shader_sampler_location, 1)
 
-        if self.vertices:
-            gl.glBindTexture(
-                gl.GL_TEXTURE_2D_ARRAY, self.texture_manager.texture_array
-            )
-            gl.glUniform1i(shader_sampler_location, 1)
-
-            gl.glDrawArrays(gl.GL_QUADS, 0, len(self.vertices))
+                gl.glDrawArrays(gl.GL_QUADS, 0, len(self.vertices))
 
 
 class World:
@@ -366,6 +370,9 @@ class World:
         self.shader = shader.Shader("vert.glsl", "frag.glsl")
         self.shader_sampler_location = self.shader.find_uniform(
             b"texture_array_sampler"
+        )
+        self.shader_tile_location = self.shader.find_uniform(
+            b"tile_texture"
         )
         self.shader.use()
 
@@ -417,7 +424,9 @@ class World:
     def on_draw(self):
         self.window.clear()
         self.camera.apply()
+        gl.glUniform1i(self.shader_tile_location, 1)
         self.batch.draw(self.shader_sampler_location)
+        gl.glUniform1i(self.shader_tile_location, 0)
         self.avatars.draw(self.shader_sampler_location)
 
     def update(self, dt):
