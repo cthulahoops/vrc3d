@@ -41,7 +41,8 @@ class TextureManager:
 
     def generate_mipmaps(self):
         gl.glGenerateMipmap(gl.GL_TEXTURE_2D_ARRAY)
-     #   pass
+
+    #   pass
 
     def add_texture(self, texture, texture_image=None):
         if not texture in self.textures:
@@ -51,8 +52,7 @@ class TextureManager:
                 texture_image = io.BytesIO(texture_image)
 
             texture_image = pyglet.image.load(
-                f"textures/{texture}.png",
-                file=texture_image
+                f"textures/{texture}.png", file=texture_image
             ).get_image_data()
 
             gl.glBindTexture(gl.GL_TEXTURE_2D_ARRAY, self.texture_array)

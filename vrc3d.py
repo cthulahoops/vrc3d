@@ -223,6 +223,7 @@ def add_floor(batch):
 def add_cube(batch, *a, **k):
     batch.add_cube(*a, **k)
 
+
 class VertexArrayObject:
     def __init__(self):
         self._id = gl.GLuint(0)
@@ -233,6 +234,7 @@ class VertexArrayObject:
 
     def __exit__(self, exc_type, exc_value, exc_traceback):
         gl.glBindVertexArray(0)
+
 
 class VertexBufferObject:
     def __init__(self):
@@ -318,10 +320,11 @@ class Scene:
 
         # create vertex position vbo
         for (vbo, data, layout_offset) in [
-                (self.vertex_position_vbo, self.vertices, 0),
-                (self.color_vbo, self.colors, 1),
-                (self.normal_vbo, self.normals, 2),
-                (self.tex_coords_vbo, self.tex_coords, 3)]:
+            (self.vertex_position_vbo, self.vertices, 0),
+            (self.color_vbo, self.colors, 1),
+            (self.normal_vbo, self.normals, 2),
+            (self.tex_coords_vbo, self.tex_coords, 3),
+        ]:
             with vbo:
                 gl.glBufferData(
                     gl.GL_ARRAY_BUFFER,
@@ -329,9 +332,10 @@ class Scene:
                     (gl.GLfloat * len(self.vertices))(*data),
                     gl.GL_STATIC_DRAW,
                 )
-                gl.glVertexAttribPointer(layout_offset, 3, gl.GL_FLOAT, gl.GL_FALSE, 0, 0)
+                gl.glVertexAttribPointer(
+                    layout_offset, 3, gl.GL_FLOAT, gl.GL_FALSE, 0, 0
+                )
                 gl.glEnableVertexAttribArray(layout_offset)
-
 
     def draw(self, shader_sampler_location):
         with self.vao:
@@ -371,9 +375,7 @@ class World:
         self.shader_sampler_location = self.shader.find_uniform(
             b"texture_array_sampler"
         )
-        self.shader_tile_location = self.shader.find_uniform(
-            b"tile_texture"
-        )
+        self.shader_tile_location = self.shader.find_uniform(b"tile_texture")
         self.shader.use()
 
         tm = texture_manager.TextureManager(128, 128, 8)

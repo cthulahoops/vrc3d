@@ -4,6 +4,7 @@ from pyglet import gl
 
 import matrix
 
+
 class Camera:
     def __init__(self, shader, width, height, position, rotation):
         self.shader = shader
@@ -20,7 +21,7 @@ class Camera:
         self.shader = shader
         self.shader_matrix_location = self.shader.find_uniform(b"matrix")
         self.shader_camera_location = self.shader.find_uniform(b"camera")
-        print (self.shader_matrix_location, self.shader_camera_location)
+        print(self.shader_matrix_location, self.shader_camera_location)
 
     def update(self, dt, input_vector):
         s = dt * 5
@@ -43,8 +44,12 @@ class Camera:
         # create modelview matrix
 
         self.mv_matrix.load_identity()
-        self.mv_matrix.rotate_2d(2 * math.pi * self.rotation[1] / 360, 2 * math.pi * self.rotation[0] / 360)
-        self.mv_matrix.translate(-self.position[0], -self.position[1], -self.position[2])
+        self.mv_matrix.rotate_2d(
+            2 * math.pi * self.rotation[1] / 360, 2 * math.pi * self.rotation[0] / 360
+        )
+        self.mv_matrix.translate(
+            -self.position[0], -self.position[1], -self.position[2]
+        )
 
         # modelviewprojection matrix
 

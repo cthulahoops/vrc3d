@@ -1,5 +1,6 @@
 import math
 
+
 class Vector:
     def __init__(self, data):
         self._data = list(data)
@@ -23,11 +24,13 @@ class Vector:
         return math.sqrt(self.x ** 2 + self.y ** 2 + self.z ** 2)
 
     def cross(self, other):
-        return Vector([
-            self.y * other.z - self.z * other.y,
-            self.z * other.x - self.x * other.z,
-            self.x * other.y - self.y * other.x
-        ])
+        return Vector(
+            [
+                self.y * other.z - self.z * other.y,
+                self.z * other.x - self.x * other.z,
+                self.x * other.y - self.y * other.x,
+            ]
+        )
 
     def __rmul__(self, other):
         return Vector(other * x for x in self._data)
