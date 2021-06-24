@@ -3,12 +3,13 @@ import threading
 import asyncio
 import queue
 from queue import Queue
-import aiohttp
+import traceback
 from concurrent.futures import ThreadPoolExecutor
+
+import aiohttp
 
 import rctogether
 from rctogether import walls
-import traceback
 
 from pyglet import gl
 from pyglet.window import key
@@ -17,7 +18,7 @@ import pyglet
 from camera import Camera
 from vector import Vector
 from shader import Shader
-import texture_manager
+from texture_manager import TextureManager
 import photos
 
 COLORS = {
@@ -413,7 +414,7 @@ class World:
         self.shader = Shader("vert.glsl", "frag.glsl")
         self.shader.use()
 
-        tm = texture_manager.TextureManager(128, 128, 8)
+        texture_manager = TextureManager(128, 128, 8)
         for name in [
             "empty",
             "audio_block",
@@ -424,20 +425,18 @@ class World:
             "note",
             "zoom",
         ]:
-            tm.add_texture(name)
+            texture_manager.add_texture(name)
 
         gl.glActiveTexture(gl.GL_TEXTURE0)
-        gl.glBindTexture(gl.GL_TEXTURE_2D_ARRAY, tm.texture_array)
 
-        self.batch = Scene(tm)
+        self.batch = Scene(texture_manager)
         add_floor(self.batch)
 
-        tm = texture_manager.TextureManager(150, 150, 50)
+        texture_manager = TextureManager(150, 150, 50)
 
         gl.glActiveTexture(gl.GL_TEXTURE1)
-        gl.glBindTexture(gl.GL_TEXTURE_2D_ARRAY, tm.texture_array)
 
-        self.avatars = Scene(tm)
+        self.avatars = Scene(texture_manager)
 
         self.camera = Camera(
             self.shader,
@@ -566,11 +565,10 @@ async def space_avatar_worker(avatars_update_queue):
                         if message['payload']['action'] == 'create':
                             await walls.create(session, bot_id=bot_id, color=message['payload']['color'])
                         elif message['payload']['action'] == 'upload':
-                            await walls.update(session, bot_id=bot_id, color=message['payload']['color'])
+                            pass # Not supported without getting the wall id.
+                            # await walls.update(session, bot_id=bot_id, color=message['payload']['color'])
                 except rctogether.api.HttpError:
                     traceback.print_exc()
-                    pass
-
 
 
 async def async_thread_main(entity_queue, avatar_update_queue_future):
