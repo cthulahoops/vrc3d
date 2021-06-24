@@ -228,8 +228,9 @@ def add_floor(batch):
     )
 
 
-def add_cube(scene, entity_id, *a, **k):
-    cube = Cube(*a, **k)
+def add_cube(scene, entity_id, entity_position, *a, **k):
+    position = Vector(entity_position["x"], 0, entity_position["y"])
+    cube = Cube(position, *a, **k)
     scene.add_cube(entity_id, cube)
 
 
@@ -258,7 +259,6 @@ class VertexBufferObject:
 
 class Cube:
     def __init__(self, pos, size=Vector(1, 1, 1), texture=None, color=None, offset=Vector(0, 0, 0)):
-        pos = Vector(pos["x"], 0, pos["y"])
 
         a = pos + offset - Vector(size.x, 0, size.z) / 2
         b = a + size
