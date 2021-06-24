@@ -1,7 +1,5 @@
 import math
 
-from pyglet import gl
-
 import matrix
 
 

@@ -1,13 +1,14 @@
-import io
-import math
+import ctypes
 import threading
 import asyncio
 import queue
-import functools
+from queue import Queue
 import aiohttp
-import ctypes
+from concurrent.futures import ThreadPoolExecutor
 
 import rctogether
+from rctogether import walls
+import traceback
 
 from pyglet import gl
 from pyglet.window import key
@@ -27,6 +28,8 @@ COLORS = {
     "purple": "#956bc3",
     "yellow": "#e7dd6f",
 }
+
+WALL_COLORS = list(COLORS.keys())
 
 
 def tex_coords(x0, x1, y0, y1, texture_index):
@@ -51,19 +54,20 @@ def color_to_rgb(color):
 
 
 def add_wall(batch, entity):
-    add_cube(batch, entity["pos"], [1, 1, 1], color=COLORS[entity["color"]])
+    add_cube(batch, entity['id'], entity["pos"], [1, 1, 1], color=COLORS[entity["color"]])
 
 
 def add_note(batch, entity):
-    add_cube(batch, entity["pos"], [1, 1, 1], color=COLORS["yellow"])
+    add_cube(batch, entity['id'], entity["pos"], [1, 1, 1], color=COLORS["yellow"])
 
 
 def add_desk(batch, entity):
     add_cube(
-        batch, entity["pos"], [0.9, 0.04, 0.9], color=COLORS["orange"], y_offset=0.35
+        batch, (entity['id'], 5), entity["pos"], [0.9, 0.04, 0.9], color=COLORS["orange"], y_offset=0.35
     )
     add_cube(
         batch,
+        (entity['id'], 0),
         entity["pos"],
         [0.04, 0.35, 0.04],
         color="#33333",
@@ -72,6 +76,7 @@ def add_desk(batch, entity):
     )
     add_cube(
         batch,
+        (entity['id'], 1),
         entity["pos"],
         [0.04, 0.35, 0.04],
         color="#33333",
@@ -80,6 +85,7 @@ def add_desk(batch, entity):
     )
     add_cube(
         batch,
+        (entity['id'], 2),
         entity["pos"],
         [0.04, 0.35, 0.04],
         color="#33333",
@@ -88,6 +94,7 @@ def add_desk(batch, entity):
     )
     add_cube(
         batch,
+        (entity['id'], 3),
         entity["pos"],
         [0.04, 0.35, 0.04],
         color="#33333",
@@ -104,6 +111,7 @@ def add_calendar(batch, entity):
 
     add_cube(
         batch,
+        entity['id'],
         entity["pos"],
         [0.6, 0.6, 0.6],
         texture=tex_coords(x0, x1, y0, y1, texture_index),
@@ -118,6 +126,7 @@ def add_link(batch, entity):
 
     add_cube(
         batch,
+        entity['id'],
         entity["pos"],
         [0.8, 0.8, 0.8],
         texture=tex_coords(x0, x1, y0, y1, texture_index),
@@ -132,6 +141,7 @@ def add_zoomlink(batch, entity):
 
     add_cube(
         batch,
+        entity['id'],
         entity["pos"],
         [0.6, 0.6, 0.6],
         color="#0000ff",
@@ -147,6 +157,7 @@ def add_audioblock(batch, entity):
 
     add_cube(
         batch,
+        entity['id'],
         entity["pos"],
         [0.6, 0.6, 0.6],
         texture=tex_coords(x0, x1, y0, y1, texture_index),
@@ -165,6 +176,7 @@ def add_audioroom(batch, entity):
 
     add_cube(
         batch,
+        entity['id'],
         pos,
         [entity["width"], 0.002, entity["height"]],
         texture=tex_coords(x0, x1, y0, y1, texture_index),
@@ -185,6 +197,7 @@ def add_avatar(batch, entity):
 
     add_cube(
         batch,
+        entity['id'],
         pos,
         [0.05, 0.8, 0.4],
         color="#ffffff",
@@ -200,6 +213,7 @@ def add_floor(batch):
 
     add_cube(
         batch,
+        -1,
         {"x": 500, "y": 500},
         [1000, 0.001, 1000],
         color="#eeeeee",
@@ -207,8 +221,9 @@ def add_floor(batch):
     )
 
 
-def add_cube(batch, *a, **k):
-    batch.add_cube(*a, **k)
+def add_cube(scene, entity_id, *a, **k):
+    cube = Cube(*a, **k)
+    scene.add_cube(entity_id, cube)
 
 
 class VertexArrayObject:
@@ -234,35 +249,8 @@ class VertexBufferObject:
     def __exit__(self, exc_type, exc_value, exc_traceback):
         gl.glBindBuffer(gl.GL_ARRAY_BUFFER, 0)
 
-
-class Scene:
-    def __init__(self, texture_manager):
-        self.vertices = []
-        self.colors = []
-        self.normals = []
-        self.tex_coords = []
-        self.dirty = True
-
-        self.texture_manager = texture_manager
-
-        self.vao = VertexArrayObject()
-        with self.vao:
-            self.vertex_position_vbo = VertexBufferObject()
-            self.color_vbo = VertexBufferObject()
-            self.normal_vbo = VertexBufferObject()
-            self.tex_coords_vbo = VertexBufferObject()
-
-    def add_cube(
-        self,
-        pos,
-        size,
-        texture=None,
-        color=None,
-        group=None,
-        x_offset=0,
-        y_offset=0,
-        z_offset=0,
-    ):
+class Cube:
+    def __init__(self, pos, size, texture=None, color=None, x_offset=0, y_offset=0, z_offset=0):
         pos = [pos["x"], 0, pos["y"]]
         x0, y0, z0 = (
             x_offset + pos[0] - size[0] / 2,
@@ -294,18 +282,79 @@ class Scene:
 
         normals = [(0, 0, -1), (0, 0, 1), (-1, 0, 0), (1, 0, 0), (0, -1, 0), (0, 1, 0)]
 
+        self.vertices = []
+        self.colors = []
+        self.normals = []
+        self.tex_coords = []
+
         for (v, n) in zip(vertices, normals):
             self.vertices.extend(v)
             self.colors.extend(colors)
             self.normals.extend(n * 4)
             self.tex_coords.extend(texture)
 
+class Scene:
+    def __init__(self, texture_manager):
+        self.vertices = []
+        self.colors = []
+        self.normals = []
+        self.tex_coords = []
         self.dirty = True
+
+        self.entities = {}
+
+        self.texture_manager = texture_manager
+
+        self.vao = VertexArrayObject()
+        with self.vao:
+            self.vertex_position_vbo = VertexBufferObject()
+            self.color_vbo = VertexBufferObject()
+            self.normal_vbo = VertexBufferObject()
+            self.tex_coords_vbo = VertexBufferObject()
+
+    def add_cube(self, entity_id, cube):
+        if entity_id in self.entities:
+            offset = self.entities[entity_id]
+
+            print("Replacing at: ", offset)
+
+            self.vertices[offset:offset+len(cube.vertices)] = cube.vertices
+            self.colors[offset:offset+len(cube.colors)] = cube.colors
+            self.normals[offset:offset+len(cube.normals)] = cube.normals
+            self.tex_coords[offset:offset+len(cube.tex_coords)] = cube.tex_coords
+
+            if self.dirty:
+                return
+
+            for (vbo, data) in [
+                    (self.vertex_position_vbo, cube.vertices),
+                    (self.color_vbo, cube.colors),
+                    (self.normal_vbo, cube.normals),
+                    (self.tex_coords_vbo, cube.tex_coords)]:
+                with vbo:
+                    try:
+                        gl.glBufferSubData(
+                            gl.GL_ARRAY_BUFFER,
+                            ctypes.sizeof(gl.GLfloat * offset),
+                            ctypes.sizeof(gl.GLfloat * len(data)),
+                            (gl.GLfloat * len(data))(*data),
+                        )
+                    except:
+                        print(offset, len(data), data, self.dirty, len(self.vertices))
+                        raise
+        else:
+            self.entities[entity_id] = len(self.vertices)
+
+            self.vertices.extend(cube.vertices)
+            self.colors.extend(cube.colors)
+            self.normals.extend(cube.normals)
+            self.tex_coords.extend(cube.tex_coords)
+
+            self.dirty = True
 
     def regenerate_buffers(self):
         print("Required to regen buffers!")
 
-        # create vertex position vbo
         for (vbo, data, layout_offset) in [
             (self.vertex_position_vbo, self.vertices, 0),
             (self.color_vbo, self.colors, 1),
@@ -339,18 +388,19 @@ class Scene:
 
 
 class World:
-    def __init__(self, queue):
-        self.queue = queue
+    def __init__(self, entity_queue, avatar_update_queue):
+        self.entity_queue = entity_queue
+        self.avatar_update_queue = avatar_update_queue
 
         self.window = pyglet.window.Window(
-            caption="VRC3D", resizable=True, fullscreen=True
+            caption="VRC3D", resizable=True, fullscreen=False
         )
         self.window.set_mouse_visible(False)
         self.window.set_exclusive_mouse(True)
         (r, g, b) = color_to_rgb("#87ceeb")
         gl.glClearColor(r / 255, g / 255, b / 255, 1)
+
         gl.glEnable(gl.GL_DEPTH_TEST)
-        gl.glShadeModel(gl.GL_SMOOTH)
 
         self.window.event(self.on_draw)
         self.window.event(self.on_mouse_motion)
@@ -393,14 +443,23 @@ class World:
             Vector([45, 0.6, 53]),
             Vector([0, 90]),
         )
+        self.pos = None
 
         self.keys = key.KeyStateHandler()
         self.window.push_handlers(self.keys)
+
+        self.active_color = 0
 
     def on_key_press(self, KEY, MOD):
         if KEY == key.ESCAPE:
             print(self.camera.position)
             self.window.close()
+        elif KEY == key.X:
+            self.avatar_update_queue.put({'type': 'wall', 'payload': {'action': 'create', 'color': WALL_COLORS[self.active_color % len(WALL_COLORS)]}})
+        elif KEY == key.C:
+            self.active_color += 1
+            self.avatar_update_queue.put({'type': 'wall', 'payload': {'action': 'update', 'color': WALL_COLORS[self.active_color % len(WALL_COLORS)]}})
+
 
     def on_mouse_motion(self, x, y, dx, dy):
         self.camera.update_mouse(Vector([dy / 6, dx / 6]))
@@ -416,7 +475,7 @@ class World:
     def update(self, dt):
         try:
             while True:
-                entity = self.queue.get_nowait()
+                entity = self.entity_queue.get_nowait()
                 if entity["type"] == "Wall":
                     add_wall(self.batch, entity)
                 elif entity["type"] == "Desk":
@@ -454,13 +513,63 @@ class World:
             input_vector += Vector([1, 0, 0])
 
         self.camera.update(dt, input_vector)
+        pos = {
+            'x': round(self.camera.position.x),
+            'y': round(self.camera.position.z),
+            'direction': ['up', 'right', 'down', 'left'][round(self.camera.rotation.y / 90) % 4]
+        }
+
+        self.camera.update(dt, input_vector)
+
+        pos = avatar_position(self.camera)
+
+        if pos != self.pos:
+            print("Updating pos: ", pos)
+            self.avatar_update_queue.put({'type': 'pos', 'payload': pos})
+            self.pos = pos
 
 
-# async def async_2d_avatar():
-# 👾
+def avatar_position(camera):
+    return {
+        'x': round(camera.position.x),
+        'y': round(camera.position.z),
+        'direction': ['up', 'right', 'down', 'left'][round(camera.rotation.y / 90) % 4]
+    }
+
+async def space_avatar_worker(avatars_update_queue):
+    async with rctogether.RestApiSession() as session:
+        bot_id = None
+        for bot in await rctogether.bots.get(session):
+            if bot['emoji'] == "👾":
+                bot_id = bot['id']
+
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            loop = asyncio.get_event_loop()
+            while message := await loop.run_in_executor(executor, avatars_update_queue.get):
+                try:
+                    if message['type'] == 'pos':
+                        pos = message['payload']
+
+                        if bot_id:
+                            await rctogether.bots.update(session, bot_id, pos)
+                        else:
+                            bot = await rctogether.bots.create(
+                                    session,
+                                    name="Extra-dimensional Avatar",
+                                    emoji="👾",
+                                    x=pos['x'],
+                                    y=pos['y'])
+                            bot_id = bot['id']
+                    elif message['type'] == 'wall':
+                        if message['payload']['action'] == 'create':
+                            await walls.create(session, bot_id=bot_id, color=message['payload']['color'])
+                        elif message['payload']['action'] == 'upload':
+                            await walls.update(session, bot_id=bot_id, color=message['payload']['color'])
+                except rctogether.api.HttpError:
+                    traceback.print_exc()
+                    pass
 
 PHOTOS = {}
-
 
 def photo_path(avatar_id, extension):
     return "photos/%d.%s" % (avatar_id, extension)
@@ -501,25 +610,29 @@ async def download_photo(session, avatar_id, image_path):
     return image_data
 
 
-async def async_thread_main(queue):
+async def async_thread_main(entity_queue, avatar_update_queue_future):
+    asyncio.create_task(space_avatar_worker(avatar_update_queue_future))
+
     async with aiohttp.ClientSession() as session:
         async for entity in rctogether.WebsocketSubscription():
             if entity["type"] == "Avatar" and entity["id"] not in PHOTOS:
                 await get_photo(session, entity["id"], entity["image_path"])
-            queue.put(entity)
+            entity_queue.put(entity)
 
 
 def main():
-    entity_queue = queue.Queue()
+    entity_queue = Queue()
+    avatar_update_queue = Queue()
 
     async_thread = threading.Thread(
-        target=lambda: asyncio.run(async_thread_main(entity_queue)), daemon=True
+            target=lambda: asyncio.run(async_thread_main(entity_queue, avatar_update_queue))
     )
     async_thread.start()
 
-    world = World(entity_queue)
-
+    World(entity_queue, avatar_update_queue)
     pyglet.app.run()
+    avatar_update_queue.put(None)
+
 
 
 if __name__ == "__main__":
