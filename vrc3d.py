@@ -18,6 +18,7 @@ from camera import Camera
 from vector import Vector
 from shader import Shader
 import texture_manager
+import photos
 
 COLORS = {
     "gray": "#919c9c",
@@ -31,6 +32,8 @@ COLORS = {
 
 WALL_COLORS = list(COLORS.keys())
 
+
+PHOTOS = {}
 
 def tex_coords(x0, x1, y0, y1, texture_index):
     return [
@@ -524,7 +527,6 @@ class World:
         pos = avatar_position(self.camera)
 
         if pos != self.pos:
-            print("Updating pos: ", pos)
             self.avatar_update_queue.put({'type': 'pos', 'payload': pos})
             self.pos = pos
 
@@ -569,45 +571,6 @@ async def space_avatar_worker(avatars_update_queue):
                     traceback.print_exc()
                     pass
 
-PHOTOS = {}
-
-def photo_path(avatar_id, extension):
-    return "photos/%d.%s" % (avatar_id, extension)
-
-
-def get_photo_ext(avatar_id, extension):
-    try:
-        with open(photo_path(avatar_id, extension), "rb") as fh:
-            return fh.read()
-    except FileNotFoundError:
-        return None
-
-
-async def get_photo(session, avatar_id, image_path):
-    image_data = (
-        get_photo_ext(avatar_id, "jpeg")
-        or get_photo_ext(avatar_id, "png")
-        or await download_photo(session, avatar_id, image_path)
-    )
-
-    PHOTOS[avatar_id] = image_data
-    return image_data
-
-
-async def download_photo(session, avatar_id, image_path):
-    print("FETCH: ", image_path)
-    async with session.get(image_path) as response:
-        image_data = await response.read()
-
-        if response.content_type == "image/jpeg":
-            extension = "jpeg"
-        elif response.content_type == "image/png":
-            extension = "png"
-
-        with open(photo_path(avatar_id, extension), "wb") as fh:
-            fh.write(image_data)
-
-    return image_data
 
 
 async def async_thread_main(entity_queue, avatar_update_queue_future):
@@ -616,7 +579,8 @@ async def async_thread_main(entity_queue, avatar_update_queue_future):
     async with aiohttp.ClientSession() as session:
         async for entity in rctogether.WebsocketSubscription():
             if entity["type"] == "Avatar" and entity["id"] not in PHOTOS:
-                await get_photo(session, entity["id"], entity["image_path"])
+                image_data = await photos.get_photo(session, entity["id"], entity["image_path"])
+                PHOTOS[entity["id"]] = image_data
             entity_queue.put(entity)
 
 
