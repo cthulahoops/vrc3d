@@ -4,6 +4,7 @@ import asyncio
 import queue
 from queue import Queue
 import traceback
+from collections import namedtuple
 from concurrent.futures import ThreadPoolExecutor
 
 import aiohttp
@@ -14,6 +15,7 @@ from rctogether import walls
 from pyglet import gl
 from pyglet.window import key
 import pyglet
+
 
 from camera import Camera
 from vector import Vector
@@ -54,56 +56,57 @@ def tex_coords(x0, x1, y0, y1, texture_index):
 
 
 def color_to_rgb(color):
-    return (int(color[1:3], 16), int(color[3:5], 16), int(color[5:7], 16))
+    return (int(color[1:3], 16) / 255, int(color[3:5], 16) / 255, int(color[5:7], 16) / 255)
 
 
 def add_wall(batch, entity):
-    add_cube(batch, entity['id'], entity["pos"], [1, 1, 1], color=COLORS[entity["color"]])
+    add_cube(batch, entity['id'], entity["pos"], color=COLORS[entity["color"]])
 
 
 def add_note(batch, entity):
-    add_cube(batch, entity['id'], entity["pos"], [1, 1, 1], color=COLORS["yellow"])
+    add_cube(batch, entity['id'], entity["pos"], color=COLORS["yellow"])
 
 
 def add_desk(batch, entity):
     add_cube(
-        batch, (entity['id'], 5), entity["pos"], [0.9, 0.04, 0.9], color=COLORS["orange"], y_offset=0.35
+        batch,
+        (entity['id'], 5),
+        entity["pos"],
+        Vector(0.9, 0.04, 0.9),
+        color=COLORS["orange"],
+        offset=Vector(0, 0.35, 0)
     )
     add_cube(
         batch,
         (entity['id'], 0),
         entity["pos"],
-        [0.04, 0.35, 0.04],
+        Vector(0.04, 0.35, 0.04),
         color="#33333",
-        x_offset=-0.4,
-        z_offset=-0.4,
+        offset=Vector(-0.4, 0, -0.4)
     )
     add_cube(
         batch,
         (entity['id'], 1),
         entity["pos"],
-        [0.04, 0.35, 0.04],
+        Vector(0.04, 0.35, 0.04),
         color="#33333",
-        x_offset=-0.4,
-        z_offset=0.4,
+        offset=Vector(-0.4, 0, 0.4)
     )
     add_cube(
         batch,
         (entity['id'], 2),
         entity["pos"],
-        [0.04, 0.35, 0.04],
+        Vector(0.04, 0.35, 0.04),
         color="#33333",
-        x_offset=0.4,
-        z_offset=-0.4,
+        offset=Vector(0.4, 0, -0.4)
     )
     add_cube(
         batch,
         (entity['id'], 3),
         entity["pos"],
-        [0.04, 0.35, 0.04],
+        Vector(0.04, 0.35, 0.04),
         color="#33333",
-        x_offset=0.4,
-        z_offset=0.4,
+        offset=Vector(0.4, 0, 0.4)
     )
 
 
@@ -117,7 +120,7 @@ def add_calendar(batch, entity):
         batch,
         entity['id'],
         entity["pos"],
-        [0.6, 0.6, 0.6],
+        Vector(0.6, 0.6, 0.6),
         texture=tex_coords(x0, x1, y0, y1, texture_index),
     )
 
@@ -132,7 +135,7 @@ def add_link(batch, entity):
         batch,
         entity['id'],
         entity["pos"],
-        [0.8, 0.8, 0.8],
+        Vector(0.8, 0.8, 0.8),
         texture=tex_coords(x0, x1, y0, y1, texture_index),
     )
 
@@ -147,7 +150,7 @@ def add_zoomlink(batch, entity):
         batch,
         entity['id'],
         entity["pos"],
-        [0.6, 0.6, 0.6],
+        Vector(0.6, 0.6, 0.6),
         color="#0000ff",
         texture=tex_coords(x0, x1, y0, y1, texture_index),
     )
@@ -163,7 +166,7 @@ def add_audioblock(batch, entity):
         batch,
         entity['id'],
         entity["pos"],
-        [0.6, 0.6, 0.6],
+        Vector(0.6, 0.6, 0.6),
         texture=tex_coords(x0, x1, y0, y1, texture_index),
     )
 
@@ -182,7 +185,7 @@ def add_audioroom(batch, entity):
         batch,
         entity['id'],
         pos,
-        [entity["width"], 0.002, entity["height"]],
+        Vector(entity["width"], 0.002, entity["height"]),
         texture=tex_coords(x0, x1, y0, y1, texture_index),
     )
 
@@ -203,7 +206,7 @@ def add_avatar(batch, entity):
         batch,
         entity['id'],
         pos,
-        [0.05, 0.8, 0.4],
+        Vector(0.05, 0.8, 0.4),
         color="#ffffff",
         texture=tex_coords(x0, x1, y0, y1, texture_index),
     )
@@ -219,7 +222,7 @@ def add_floor(batch):
         batch,
         -1,
         {"x": 500, "y": 500},
-        [1000, 0.001, 1000],
+        Vector(1000, 0.001, 1000),
         color="#eeeeee",
         texture=tex_coords(x0, x1, y0, y1, texture_index),
     )
@@ -254,34 +257,24 @@ class VertexBufferObject:
         gl.glBindBuffer(gl.GL_ARRAY_BUFFER, 0)
 
 class Cube:
-    def __init__(self, pos, size, texture=None, color=None, x_offset=0, y_offset=0, z_offset=0):
-        pos = [pos["x"], 0, pos["y"]]
-        x0, y0, z0 = (
-            x_offset + pos[0] - size[0] / 2,
-            y_offset + pos[1],
-            z_offset + pos[2] - size[2] / 2,
-        )
-        x1, y1, z1 = (
-            x_offset + pos[0] + size[0] / 2,
-            y_offset + pos[1] + size[1],
-            z_offset + pos[2] + size[2] / 2,
-        )
+    def __init__(self, pos, size=Vector(1, 1, 1), texture=None, color=None, offset=Vector(0, 0, 0)):
+        pos = Vector(pos["x"], 0, pos["y"])
 
-        color = color or "#114433"
+        a = pos + offset - Vector(size.x, 0, size.z) / 2
+        b = a + size
 
-        (r, g, b) = color_to_rgb(color)
-        colors = (r / 256, g / 256, b / 256) * 4
+        colors = color_to_rgb(color or "#114433") * 4
 
         if not texture:
             texture = tex_coords(0, 0, 1, 1, -1)
 
         vertices = [
-            (x1, y0, z0, x0, y0, z0, x0, y1, z0, x1, y1, z0),  # Back
-            (x0, y0, z1, x1, y0, z1, x1, y1, z1, x0, y1, z1),  # Front
-            (x0, y0, z0, x0, y0, z1, x0, y1, z1, x0, y1, z0),  # Left
-            (x1, y0, z1, x1, y0, z0, x1, y1, z0, x1, y1, z1),  # Right
-            (x0, y0, z0, x1, y0, z0, x1, y0, z1, x0, y0, z1),  # Bottom
-            (x0, y1, z1, x1, y1, z1, x1, y1, z0, x0, y1, z0),  # Top
+            (b.x, a.y, a.z, a.x, a.y, a.z, a.x, b.y, a.z, b.x, b.y, a.z),  # Back
+            (a.x, a.y, b.z, b.x, a.y, b.z, b.x, b.y, b.z, a.x, b.y, b.z),  # Front
+            (a.x, a.y, a.z, a.x, a.y, b.z, a.x, b.y, b.z, a.x, b.y, a.z),  # Left
+            (b.x, a.y, b.z, b.x, a.y, a.z, b.x, b.y, a.z, b.x, b.y, b.z),  # Right
+            (a.x, a.y, a.z, b.x, a.y, a.z, b.x, a.y, b.z, a.x, a.y, b.z),  # Bottom
+            (a.x, b.y, b.z, b.x, b.y, b.z, b.x, b.y, a.z, a.x, b.y, a.z),  # Top
         ]
 
         normals = [(0, 0, -1), (0, 0, 1), (-1, 0, 0), (1, 0, 0), (0, -1, 0), (0, 1, 0)]
@@ -297,13 +290,12 @@ class Cube:
             self.normals.extend(n * 4)
             self.tex_coords.extend(texture)
 
+
+Mesh = namedtuple('Mesh', ('vertices', 'colors', 'normals', 'tex_coords'))
+
 class Scene:
     def __init__(self, texture_manager):
-        self.vertices = []
-        self.colors = []
-        self.normals = []
-        self.tex_coords = []
-        self.dirty = True
+        self.mesh = Mesh([], [], [], [])
 
         self.entities = {}
 
@@ -311,10 +303,14 @@ class Scene:
 
         self.vao = VertexArrayObject()
         with self.vao:
-            self.vertex_position_vbo = VertexBufferObject()
-            self.color_vbo = VertexBufferObject()
-            self.normal_vbo = VertexBufferObject()
-            self.tex_coords_vbo = VertexBufferObject()
+            self.buffers = Mesh(
+                VertexBufferObject(),
+                VertexBufferObject(),
+                VertexBufferObject(),
+                VertexBufferObject()
+            )
+
+        self.dirty = True
 
     def add_cube(self, entity_id, cube):
         if entity_id in self.entities:
@@ -322,19 +318,19 @@ class Scene:
 
             print("Replacing at: ", offset)
 
-            self.vertices[offset:offset+len(cube.vertices)] = cube.vertices
-            self.colors[offset:offset+len(cube.colors)] = cube.colors
-            self.normals[offset:offset+len(cube.normals)] = cube.normals
-            self.tex_coords[offset:offset+len(cube.tex_coords)] = cube.tex_coords
+            self.mesh.vertices[offset:offset+len(cube.vertices)] = cube.vertices
+            self.mesh.colors[offset:offset+len(cube.colors)] = cube.colors
+            self.mesh.normals[offset:offset+len(cube.normals)] = cube.normals
+            self.mesh.tex_coords[offset:offset+len(cube.tex_coords)] = cube.tex_coords
 
             if self.dirty:
                 return
 
             for (vbo, data) in [
-                    (self.vertex_position_vbo, cube.vertices),
-                    (self.color_vbo, cube.colors),
-                    (self.normal_vbo, cube.normals),
-                    (self.tex_coords_vbo, cube.tex_coords)]:
+                    (self.buffers.vertices, cube.vertices),
+                    (self.buffers.colors, cube.colors),
+                    (self.buffers.normals, cube.normals),
+                    (self.buffers.tex_coords, cube.tex_coords)]:
                 with vbo:
                     try:
                         gl.glBufferSubData(
@@ -344,15 +340,15 @@ class Scene:
                             (gl.GLfloat * len(data))(*data),
                         )
                     except:
-                        print(offset, len(data), data, self.dirty, len(self.vertices))
+                        print(offset, len(data), data, self.dirty, len(self.mesh.vertices))
                         raise
         else:
-            self.entities[entity_id] = len(self.vertices)
+            self.entities[entity_id] = len(self.mesh.vertices)
 
-            self.vertices.extend(cube.vertices)
-            self.colors.extend(cube.colors)
-            self.normals.extend(cube.normals)
-            self.tex_coords.extend(cube.tex_coords)
+            self.mesh.vertices.extend(cube.vertices)
+            self.mesh.colors.extend(cube.colors)
+            self.mesh.normals.extend(cube.normals)
+            self.mesh.tex_coords.extend(cube.tex_coords)
 
             self.dirty = True
 
@@ -360,16 +356,16 @@ class Scene:
         print("Required to regen buffers!")
 
         for (vbo, data, layout_offset) in [
-            (self.vertex_position_vbo, self.vertices, 0),
-            (self.color_vbo, self.colors, 1),
-            (self.normal_vbo, self.normals, 2),
-            (self.tex_coords_vbo, self.tex_coords, 3),
+            (self.buffers.vertices, self.mesh.vertices, 0),
+            (self.buffers.colors, self.mesh.colors, 1),
+            (self.buffers.normals, self.mesh.normals, 2),
+            (self.buffers.tex_coords, self.mesh.tex_coords, 3),
         ]:
             with vbo:
                 gl.glBufferData(
                     gl.GL_ARRAY_BUFFER,
                     ctypes.sizeof(gl.GLfloat * len(data)),
-                    (gl.GLfloat * len(self.vertices))(*data),
+                    (gl.GLfloat * len(self.mesh.vertices))(*data),
                     gl.GL_STATIC_DRAW,
                 )
                 gl.glVertexAttribPointer(
@@ -383,12 +379,12 @@ class Scene:
                 self.regenerate_buffers()
                 self.dirty = False
 
-            if self.vertices:
+            if self.mesh.vertices:
                 gl.glBindTexture(
                     gl.GL_TEXTURE_2D_ARRAY, self.texture_manager.texture_array
                 )
                 shader["texture_array_sampler"] = 1
-                gl.glDrawArrays(gl.GL_QUADS, 0, len(self.vertices))
+                gl.glDrawArrays(gl.GL_QUADS, 0, len(self.mesh.vertices))
 
 
 class World:
@@ -402,7 +398,7 @@ class World:
         self.window.set_mouse_visible(False)
         self.window.set_exclusive_mouse(True)
         (r, g, b) = color_to_rgb("#87ceeb")
-        gl.glClearColor(r / 255, g / 255, b / 255, 1)
+        gl.glClearColor(r, g, b, 1)
 
         gl.glEnable(gl.GL_DEPTH_TEST)
 
@@ -410,6 +406,9 @@ class World:
         self.window.event(self.on_mouse_motion)
         self.window.event(self.on_key_press)
         pyglet.clock.schedule(self.update)
+
+        gl.glActiveTexture(gl.GL_TEXTURE0)
+        gl.glActiveTexture(gl.GL_TEXTURE1)
 
         self.shader = Shader("vert.glsl", "frag.glsl")
         self.shader.use()
@@ -427,14 +426,12 @@ class World:
         ]:
             texture_manager.add_texture(name)
 
-        gl.glActiveTexture(gl.GL_TEXTURE0)
 
         self.batch = Scene(texture_manager)
         add_floor(self.batch)
 
         texture_manager = TextureManager(150, 150, 50)
 
-        gl.glActiveTexture(gl.GL_TEXTURE1)
 
         self.avatars = Scene(texture_manager)
 
@@ -442,8 +439,8 @@ class World:
             self.shader,
             self.window.width,
             self.window.height,
-            Vector([45, 0.6, 53]),
-            Vector([0, 90]),
+            Vector(45, 0.6, 53),
+            Vector(0, 90),
         )
         self.pos = None
 
@@ -464,7 +461,7 @@ class World:
 
 
     def on_mouse_motion(self, x, y, dx, dy):
-        self.camera.update_mouse(Vector([dy / 6, dx / 6]))
+        self.camera.update_mouse(Vector(dy / 6, dx / 6))
 
     def on_draw(self):
         self.window.clear()
@@ -474,45 +471,46 @@ class World:
         self.shader["tile_texture"] = 0
         self.avatars.draw(self.shader)
 
+    def handle_entity(self, entity):
+        if entity["type"] == "Wall":
+            add_wall(self.batch, entity)
+        elif entity["type"] == "Desk":
+            add_desk(self.batch, entity)
+        elif entity["type"] == "Avatar":
+            add_avatar(self.avatars, entity)
+        elif entity["type"] == "ZoomLink":
+            add_zoomlink(self.batch, entity)
+        elif entity["type"] == "Bot":
+            pass
+        elif entity["type"] == "Link":
+            add_link(self.batch, entity)
+        elif entity["type"] == "Note":
+            add_note(self.batch, entity)
+        elif entity["type"] == "AudioBlock":
+            add_audioblock(self.batch, entity)
+        elif entity["type"] == "RC::Calendar":
+            add_calendar(self.batch, entity)
+        elif entity["type"] == "AudioRoom":
+            add_audioroom(self.batch, entity)
+        else:
+            print(entity["type"], entity)
+
     def update(self, dt):
         try:
             while True:
-                entity = self.entity_queue.get_nowait()
-                if entity["type"] == "Wall":
-                    add_wall(self.batch, entity)
-                elif entity["type"] == "Desk":
-                    add_desk(self.batch, entity)
-                elif entity["type"] == "Avatar":
-                    add_avatar(self.avatars, entity)
-                elif entity["type"] == "ZoomLink":
-                    add_zoomlink(self.batch, entity)
-                elif entity["type"] == "Bot":
-                    pass
-                elif entity["type"] == "Link":
-                    add_link(self.batch, entity)
-                elif entity["type"] == "Note":
-                    add_note(self.batch, entity)
-                elif entity["type"] == "AudioBlock":
-                    add_audioblock(self.batch, entity)
-                elif entity["type"] == "RC::Calendar":
-                    add_calendar(self.batch, entity)
-                elif entity["type"] == "AudioRoom":
-                    add_audioroom(self.batch, entity)
-                else:
-                    print(entity["type"], entity)
-
+                self.handle_entity(self.entity_queue.get_nowait())
         except queue.Empty:
             pass
 
-        input_vector = Vector([0, 0, 0])
+        input_vector = Vector(0, 0, 0)
         if self.keys[key.COMMA] or self.keys[key.UP]:
-            input_vector += Vector([0, 0, 1])
+            input_vector += Vector(0, 0, 1)
         if self.keys[key.O] or self.keys[key.DOWN]:
-            input_vector += Vector([0, 0, -1])
+            input_vector += Vector(0, 0, -1)
         if self.keys[key.A] or self.keys[key.LEFT]:
-            input_vector += Vector([-1, 0, 0])
+            input_vector += Vector(-1, 0, 0)
         if self.keys[key.E] or self.keys[key.RIGHT]:
-            input_vector += Vector([1, 0, 0])
+            input_vector += Vector(1, 0, 0)
 
         self.camera.update(dt, input_vector)
         pos = {

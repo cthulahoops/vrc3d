@@ -1,5 +1,6 @@
 import math
 
+from vector import Vector
 import matrix
 
 
@@ -23,8 +24,10 @@ class Camera:
         rotY = self.rotation.y / 180 * math.pi
         dx, dz = math.cos(rotY), math.sin(rotY)
 
-        self.position.x += s * (input_vector.x * dx + input_vector.z * dz)
-        self.position.z += s * (input_vector.x * dz - input_vector.z * dx)
+        self.position += s * Vector(
+                input_vector.x * dx + input_vector.z * dz,
+                0,
+                input_vector.x * dz - input_vector.z * dx)
 
     def update_mouse(self, input_vector):
         self.rotation += input_vector
