@@ -14,6 +14,10 @@ uniform int tile_texture;
 // in float interpolated_shading_value;
 
 void main(void) {
+	if (interpolated_tex_coords.z < -1) {
+		discard; // Deleted!
+	}
+
 	vec4 texture_color = interpolated_tex_coords.z >= 0 && (tile_texture == 1 || interpolated_tex_coords.y <= 1 && interpolated_tex_coords.y >= 0) ? texture(texture_array_sampler, interpolated_tex_coords) : vec4(local_color, 1);
 
 

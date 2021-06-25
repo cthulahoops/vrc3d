@@ -295,11 +295,12 @@ Mesh = namedtuple('Mesh', ('vertices', 'colors', 'normals', 'tex_coords'))
 
 class Scene:
     def __init__(self, texture_manager):
-        self.mesh = Mesh([], [], [], [])
-
         self.entities = {}
 
         self.texture_manager = texture_manager
+
+        self.data_size = 0
+        self.buffer_size = 0
 
         self.vao = VertexArrayObject()
         with self.vao:
@@ -310,7 +311,7 @@ class Scene:
                 VertexBufferObject()
             )
 
-        self.dirty = True
+            self.allocate_buffers(500_000)
 
     def add_cube(self, entity_id, cube):
         if entity_id in self.entities:
@@ -318,13 +319,10 @@ class Scene:
 
             print("Replacing at: ", offset)
 
-            self.mesh.vertices[offset:offset+len(cube.vertices)] = cube.vertices
-            self.mesh.colors[offset:offset+len(cube.colors)] = cube.colors
-            self.mesh.normals[offset:offset+len(cube.normals)] = cube.normals
-            self.mesh.tex_coords[offset:offset+len(cube.tex_coords)] = cube.tex_coords
-
-            if self.dirty:
-                return
+            # self.mesh.vertices[offset:offset+len(cube.vertices)] = cube.vertices
+            # self.mesh.colors[offset:offset+len(cube.colors)] = cube.colors
+            # self.mesh.normals[offset:offset+len(cube.normals)] = cube.normals
+            # self.mesh.tex_coords[offset:offset+len(cube.tex_coords)] = cube.tex_coords
 
             for (vbo, data) in [
                     (self.buffers.vertices, cube.vertices),
@@ -332,41 +330,53 @@ class Scene:
                     (self.buffers.normals, cube.normals),
                     (self.buffers.tex_coords, cube.tex_coords)]:
                 with vbo:
-                    try:
-                        gl.glBufferSubData(
-                            gl.GL_ARRAY_BUFFER,
-                            ctypes.sizeof(gl.GLfloat * offset),
-                            ctypes.sizeof(gl.GLfloat * len(data)),
-                            (gl.GLfloat * len(data))(*data),
-                        )
-                    except:
-                        print(offset, len(data), data, self.dirty, len(self.mesh.vertices))
-                        raise
+                    gl.glBufferSubData(
+                        gl.GL_ARRAY_BUFFER,
+                        ctypes.sizeof(gl.GLfloat * offset),
+                        ctypes.sizeof(gl.GLfloat * len(data)),
+                        (gl.GLfloat * len(data))(*data),
+                    )
+        elif self.data_size + len(cube.vertices) < self.buffer_size:
+            self.entities[entity_id] = self.data_size
+            offset = self.data_size
+            self.data_size += len(cube.vertices)
+
+            # self.mesh.vertices.extend(cube.vertices)
+            # self.mesh.colors.extend(cube.colors)
+            # self.mesh.normals.extend(cube.normals)
+            # self.mesh.tex_coords.extend(cube.tex_coords)
+
+            for (vbo, data) in [
+                    (self.buffers.vertices, cube.vertices),
+                    (self.buffers.colors, cube.colors),
+                    (self.buffers.normals, cube.normals),
+                    (self.buffers.tex_coords, cube.tex_coords)]:
+                with vbo:
+                    gl.glBufferSubData(
+                        gl.GL_ARRAY_BUFFER,
+                        ctypes.sizeof(gl.GLfloat * offset),
+                        ctypes.sizeof(gl.GLfloat * len(data)),
+                        (gl.GLfloat * len(data))(*data),
+                    )
         else:
-            self.entities[entity_id] = len(self.mesh.vertices)
+            raise Exception("Ooops!")
 
-            self.mesh.vertices.extend(cube.vertices)
-            self.mesh.colors.extend(cube.colors)
-            self.mesh.normals.extend(cube.normals)
-            self.mesh.tex_coords.extend(cube.tex_coords)
+    def allocate_buffers(self, size):
+        self.buffer_size = size
+        self.data_size = 0
 
-            self.dirty = True
-
-    def regenerate_buffers(self):
-        print("Required to regen buffers!")
-
-        for (vbo, data, layout_offset) in [
-            (self.buffers.vertices, self.mesh.vertices, 0),
-            (self.buffers.colors, self.mesh.colors, 1),
-            (self.buffers.normals, self.mesh.normals, 2),
-            (self.buffers.tex_coords, self.mesh.tex_coords, 3),
+        for (vbo, layout_offset) in [
+            (self.buffers.vertices, 0),
+            (self.buffers.colors, 1),
+            (self.buffers.normals, 2),
+            (self.buffers.tex_coords, 3),
         ]:
             with vbo:
                 gl.glBufferData(
                     gl.GL_ARRAY_BUFFER,
-                    ctypes.sizeof(gl.GLfloat * len(data)),
-                    (gl.GLfloat * len(self.mesh.vertices))(*data),
-                    gl.GL_STATIC_DRAW,
+                    ctypes.sizeof(gl.GLfloat * self.buffer_size),
+                    (gl.GLfloat * self.buffer_size)(*([0] * self.buffer_size)),
+                    gl.GL_DYNAMIC_DRAW,
                 )
                 gl.glVertexAttribPointer(
                     layout_offset, 3, gl.GL_FLOAT, gl.GL_FALSE, 0, 0
@@ -375,16 +385,11 @@ class Scene:
 
     def draw(self, shader):
         with self.vao:
-            if self.dirty:
-                self.regenerate_buffers()
-                self.dirty = False
-
-            if self.mesh.vertices:
-                gl.glBindTexture(
-                    gl.GL_TEXTURE_2D_ARRAY, self.texture_manager.texture_array
-                )
-                shader["texture_array_sampler"] = 1
-                gl.glDrawArrays(gl.GL_QUADS, 0, len(self.mesh.vertices))
+            gl.glBindTexture(
+                gl.GL_TEXTURE_2D_ARRAY, self.texture_manager.texture_array
+            )
+            shader["texture_array_sampler"] = 1
+            gl.glDrawArrays(gl.GL_QUADS, 0, self.data_size)
 
 
 class World:
