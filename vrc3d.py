@@ -477,7 +477,7 @@ class World:
                 self.avatars.delete_cube(entity["id"])
             else:
                 self.batch.delete_cube(entity["id"])
-        if entity["type"] == "Wall":
+        elif entity["type"] == "Wall":
             add_wall(self.batch, entity)
         elif entity["type"] == "Desk":
             add_desk(self.batch, entity)
