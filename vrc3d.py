@@ -194,7 +194,6 @@ def add_avatar(batch, entity):
     entity_id = entity["id"]
     batch.texture_manager.add_texture(entity_id, PHOTOS[entity_id])
     texture_index = batch.texture_manager.textures.index(entity_id)
-    print("Texture index: ", texture_index)
     #  texture = get_texture("avatar.png", file=io.BytesIO())
 
     x0, x1 = (-0.0, 1.0)
@@ -258,7 +257,6 @@ class VertexBufferObject:
         gl.glBindBuffer(gl.GL_ARRAY_BUFFER, 0)
 
     def write_slice(self, offset, data):
-        print("WRITE: ", offset, len(data))
         with self:
             gl.glBufferSubData(
                 gl.GL_ARRAY_BUFFER,
@@ -458,7 +456,6 @@ class World:
 
     def on_key_press(self, KEY, MOD):
         if KEY == key.ESCAPE:
-            print(self.camera.position)
             self.window.close()
         elif KEY == key.X:
             self.avatar_update_queue.put({'type': 'wall', 'payload': {'action': 'create', 'color': WALL_COLORS[self.active_color % len(WALL_COLORS)]}})
