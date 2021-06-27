@@ -307,6 +307,9 @@ class Cube:
             self.normals.extend(n * 4)
             self.tex_coords.extend(texture)
 
+    def __len__(self):
+        return len(self.vertices)
+
 
 Mesh = namedtuple('Mesh', ('vertices', 'colors', 'normals', 'tex_coords'))
 
@@ -331,18 +334,12 @@ class Scene:
             self.allocate_buffers(500_000)
 
     def delete_cube(self, entity_id):
-        offset = self.entities[entity_id]
-        print("Handling deletion: ", entity_id, " at ", offset)
-
-        size = 72
-
+        (offset, size) = self.entities[entity_id]
         self.buffers.tex_coords.write_slice(offset, [-2] * size)
 
     def add_cube(self, entity_id, cube):
         if entity_id in self.entities:
-            offset = self.entities[entity_id]
-
-            print("Creating at: ", offset, len(cube.vertices))
+            (offset, size) = self.entities[entity_id]
 
             for (vbo, data) in [
                     (self.buffers.vertices, cube.vertices),
@@ -352,9 +349,8 @@ class Scene:
                 vbo.write_slice(offset, data)
 
         elif self.data_size + len(cube.vertices) < self.buffer_size:
-            offset = self.entities[entity_id] = self.data_size
-            print(f"Adding new at: {entity_id} at  {self.data_size}")
-            self.data_size += len(cube.vertices)
+            (offset, size) = self.entities[entity_id] = (self.data_size, len(cube))
+            self.data_size += size
 
             for (vbo, data) in [
                     (self.buffers.vertices, cube.vertices),
