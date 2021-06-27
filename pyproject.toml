@@ -7,7 +7,7 @@ authors = ["Adam Kelly <adam@cthulahoops.org>"]
 [tool.poetry.dependencies]
 python = "^3.8"
 pyglet = "^1.5.18"
-rctogether = "^0.3.1"
+rctogether = "^0.3.2"
 aiohttp = "^3.7.4"
 
 [tool.poetry.dev-dependencies]

@@ -170,7 +170,7 @@ testing = ["coverage", "hypothesis (>=5.7.1)"]
 
 [[package]]
 name = "rctogether"
-version = "0.3.1"
+version = "0.3.2"
 description = ""
 category = "main"
 optional = false
@@ -220,7 +220,7 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8"
-content-hash = "cf149193b8542ff72a04499abc1c5a001984c1c298b4c619d175e108eec3ac8b"
+content-hash = "6d1e27017cec7c3ade3a701710c88b18e6a0af2fc5f746d50abf151a5d8d2841"
 
 [metadata.files]
 aiohttp = [
@@ -358,8 +358,8 @@ pytest-asyncio = [
     {file = "pytest_asyncio-0.15.1-py3-none-any.whl", hash = "sha256:3042bcdf1c5d978f6b74d96a151c4cfb9dcece65006198389ccd7e6c60eb1eea"},
 ]
 rctogether = [
-    {file = "rctogether-0.3.1-py3-none-any.whl", hash = "sha256:781fddf375887ed027c98d8c73f4ee57f5c07e7d685776d5ae95e50912f3da60"},
-    {file = "rctogether-0.3.1.tar.gz", hash = "sha256:e6f28ea37186bd63a8c06ddc8df13b94111fffa802637e2544949e768cba8d3a"},
+    {file = "rctogether-0.3.2-py3-none-any.whl", hash = "sha256:242c1629f9b8b2ec1f5bf7762eb83f1edb487397b5e624fdd4366618c317303d"},
+    {file = "rctogether-0.3.2.tar.gz", hash = "sha256:e6ae0e34d032751ed506bf533251b3f3833a1da913d80e32cc42dcd077a1ae60"},
 ]
 toml = [
     {file = "toml-0.10.2-py2.py3-none-any.whl", hash = "sha256:806143ae5bfb6a3c6e736a764057db0e6a0e05e338b5630894a5f779cabb4f9b"},

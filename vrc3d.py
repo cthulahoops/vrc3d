@@ -257,6 +257,25 @@ class VertexBufferObject:
     def __exit__(self, exc_type, exc_value, exc_traceback):
         gl.glBindBuffer(gl.GL_ARRAY_BUFFER, 0)
 
+    def write_slice(self, offset, data):
+        print("WRITE: ", offset, len(data))
+        with self:
+            gl.glBufferSubData(
+                gl.GL_ARRAY_BUFFER,
+                ctypes.sizeof(gl.GLfloat) * offset,
+                ctypes.sizeof(gl.GLfloat) * len(data),
+                (gl.GLfloat * len(data))(*data),
+            )
+
+    def write(self, data):
+        with self:
+            gl.glBufferData(
+                gl.GL_ARRAY_BUFFER,
+                ctypes.sizeof(gl.GLfloat) * len(data),
+                (gl.GLfloat * len(data))(*data),
+                gl.GL_DYNAMIC_DRAW,
+            )
+
 class Cube:
     def __init__(self, pos, size=Vector(1, 1, 1), texture=None, color=None, offset=Vector(0, 0, 0)):
 
@@ -313,51 +332,39 @@ class Scene:
 
             self.allocate_buffers(500_000)
 
+    def delete_cube(self, entity_id):
+        offset = self.entities[entity_id]
+        print("Handling deletion: ", entity_id, " at ", offset)
+
+        size = 72
+
+        self.buffers.tex_coords.write_slice(offset, [-2] * size)
+
     def add_cube(self, entity_id, cube):
         if entity_id in self.entities:
             offset = self.entities[entity_id]
 
-            print("Replacing at: ", offset)
-
-            # self.mesh.vertices[offset:offset+len(cube.vertices)] = cube.vertices
-            # self.mesh.colors[offset:offset+len(cube.colors)] = cube.colors
-            # self.mesh.normals[offset:offset+len(cube.normals)] = cube.normals
-            # self.mesh.tex_coords[offset:offset+len(cube.tex_coords)] = cube.tex_coords
+            print("Creating at: ", offset, len(cube.vertices))
 
             for (vbo, data) in [
                     (self.buffers.vertices, cube.vertices),
                     (self.buffers.colors, cube.colors),
                     (self.buffers.normals, cube.normals),
                     (self.buffers.tex_coords, cube.tex_coords)]:
-                with vbo:
-                    gl.glBufferSubData(
-                        gl.GL_ARRAY_BUFFER,
-                        ctypes.sizeof(gl.GLfloat * offset),
-                        ctypes.sizeof(gl.GLfloat * len(data)),
-                        (gl.GLfloat * len(data))(*data),
-                    )
+                vbo.write_slice(offset, data)
+
         elif self.data_size + len(cube.vertices) < self.buffer_size:
-            self.entities[entity_id] = self.data_size
-            offset = self.data_size
+            offset = self.entities[entity_id] = self.data_size
+            print(f"Adding new at: {entity_id} at  {self.data_size}")
             self.data_size += len(cube.vertices)
 
-            # self.mesh.vertices.extend(cube.vertices)
-            # self.mesh.colors.extend(cube.colors)
-            # self.mesh.normals.extend(cube.normals)
-            # self.mesh.tex_coords.extend(cube.tex_coords)
-
             for (vbo, data) in [
                     (self.buffers.vertices, cube.vertices),
                     (self.buffers.colors, cube.colors),
                     (self.buffers.normals, cube.normals),
                     (self.buffers.tex_coords, cube.tex_coords)]:
-                with vbo:
-                    gl.glBufferSubData(
-                        gl.GL_ARRAY_BUFFER,
-                        ctypes.sizeof(gl.GLfloat * offset),
-                        ctypes.sizeof(gl.GLfloat * len(data)),
-                        (gl.GLfloat * len(data))(*data),
-                    )
+
+                vbo.write_slice(offset, data)
         else:
             raise Exception("Ooops!")
 
@@ -371,13 +378,8 @@ class Scene:
             (self.buffers.normals, 2),
             (self.buffers.tex_coords, 3),
         ]:
+            vbo.write([0] * self.buffer_size)
             with vbo:
-                gl.glBufferData(
-                    gl.GL_ARRAY_BUFFER,
-                    ctypes.sizeof(gl.GLfloat * self.buffer_size),
-                    (gl.GLfloat * self.buffer_size)(*([0] * self.buffer_size)),
-                    gl.GL_DYNAMIC_DRAW,
-                )
                 gl.glVertexAttribPointer(
                     layout_offset, 3, gl.GL_FLOAT, gl.GL_FALSE, 0, 0
                 )
@@ -477,6 +479,11 @@ class World:
         self.avatars.draw(self.shader)
 
     def handle_entity(self, entity):
+        if entity.get('deleted'):
+            if entity["type"] == "Avatar":
+                self.avatars.delete_cube(entity["id"])
+            else:
+                self.batch.delete_cube(entity["id"])
         if entity["type"] == "Wall":
             add_wall(self.batch, entity)
         elif entity["type"] == "Desk":
