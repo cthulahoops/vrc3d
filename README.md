@@ -13,7 +13,7 @@ export RC_APP_ID=<app_id>
 export RC_APP_SECRET=<app_id>
 ```
 
-(Configure RC_APP_ENDPOINT too, if you're not a non-RC endpoint.)
+(Configure RC_APP_ENDPOINT too, if you're using a non-RC endpoint.)
 
 
 Run:
