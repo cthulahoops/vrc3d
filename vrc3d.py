@@ -473,13 +473,8 @@ class World:
         self.shader["tile_texture"] = 0
         self.avatars.draw(self.shader)
 
-    def handle_entity(self, entity):
-        if entity.get('deleted'):
-            if entity["type"] == "Avatar":
-                self.avatars.delete_cube(entity["id"])
-            else:
-                self.batch.delete_cube(entity["id"])
-        elif entity["type"] == "Wall":
+    def add_entity(self, entity):
+        if entity["type"] == "Wall":
             add_wall(self.batch, entity)
         elif entity["type"] == "Desk":
             add_desk(self.batch, entity)
@@ -501,6 +496,15 @@ class World:
             add_audioroom(self.batch, entity)
         else:
             print(entity["type"], entity)
+
+    def handle_entity(self, entity):
+        if entity.get('deleted'):
+            if entity["type"] == "Avatar":
+                self.avatars.delete_cube(entity["id"])
+            else:
+                self.batch.delete_cube(entity["id"])
+        else:
+            self.add_entity(entity)
 
     def update(self, dt):
         try:
