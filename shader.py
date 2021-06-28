@@ -54,8 +54,8 @@ class Shader:
         gl.glDeleteShader(self.vert_shader)
         gl.glDeleteShader(self.frag_shader)
 
-    def __del__(self):
-        gl.glDeleteProgram(self.program)
+    # def __del__(self):
+        # gl.glDeleteProgram(self.program)
 
     @functools.lru_cache
     def find_uniform(self, name):

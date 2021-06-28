@@ -546,49 +546,64 @@ def avatar_position(camera):
         'direction': ['up', 'right', 'down', 'left'][round(camera.rotation.y / 90) % 4]
     }
 
-async def space_avatar_worker(avatars_update_queue):
+
+async def avatar_updates(avatars_update_queue):
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        loop = asyncio.get_event_loop()
+        while message := await loop.run_in_executor(executor, avatars_update_queue.get):
+            yield message
+
+async def space_avatar_worker(avatar_queue):
     async with rctogether.RestApiSession() as session:
         bot_id = None
         for bot in await rctogether.bots.get(session):
             if bot['emoji'] == "👾":
                 bot_id = bot['id']
 
-        with ThreadPoolExecutor(max_workers=1) as executor:
-            loop = asyncio.get_event_loop()
-            while message := await loop.run_in_executor(executor, avatars_update_queue.get):
-                try:
-                    if message['type'] == 'pos':
-                        pos = message['payload']
+        async for message in avatar_updates(avatar_queue):
+            try:
+                if message['type'] == 'pos':
+                    pos = message['payload']
 
-                        if bot_id:
-                            await rctogether.bots.update(session, bot_id, pos)
-                        else:
-                            bot = await rctogether.bots.create(
-                                    session,
-                                    name="Extra-dimensional Avatar",
-                                    emoji="👾",
-                                    x=pos['x'],
-                                    y=pos['y'])
-                            bot_id = bot['id']
-                    elif message['type'] == 'wall':
-                        if message['payload']['action'] == 'create':
-                            await walls.create(session, bot_id=bot_id, color=message['payload']['color'])
-                        elif message['payload']['action'] == 'upload':
-                            pass # Not supported without getting the wall id.
-                            # await walls.update(session, bot_id=bot_id, color=message['payload']['color'])
-                except rctogether.api.HttpError:
-                    traceback.print_exc()
+                    if bot_id:
+                        await rctogether.bots.update(session, bot_id, pos)
+                    else:
+                        bot = await rctogether.bots.create(
+                                session,
+                                name="Extra-dimensional Avatar",
+                                emoji="👾",
+                                x=pos['x'],
+                                y=pos['y'])
+                        bot_id = bot['id']
+                elif message['type'] == 'wall':
+                    if message['payload']['action'] == 'create':
+                        await walls.create(session, bot_id=bot_id, color=message['payload']['color'])
+                    elif message['payload']['action'] == 'upload':
+                        pass # Not supported without getting the wall id.
+                        # await walls.update(session, bot_id=bot_id, color=message['payload']['color'])
+            except rctogether.api.HttpError:
+                traceback.print_exc()
 
+        if bot_id:
+            await rctogether.bots.delete(session, bot_id)
 
-async def async_thread_main(entity_queue, avatar_update_queue_future):
-    asyncio.create_task(space_avatar_worker(avatar_update_queue_future))
-
+async def websocket_subscription(entity_queue):
     async with aiohttp.ClientSession() as session:
         async for entity in rctogether.WebsocketSubscription():
             if entity["type"] == "Avatar" and entity["id"] not in PHOTOS:
                 image_data = await photos.get_photo(session, entity["id"], entity["image_path"])
                 PHOTOS[entity["id"]] = image_data
             entity_queue.put(entity)
+
+
+async def async_thread_main(entity_queue, avatar_update_queue_future):
+    subscription = asyncio.create_task(websocket_subscription(entity_queue))
+    await space_avatar_worker(avatar_update_queue_future)
+    subscription.cancel()
+    try:
+        await subscription
+    except asyncio.exceptions.CancelledError:
+        pass
 
 
 def main():
@@ -602,8 +617,9 @@ def main():
 
     World(entity_queue, avatar_update_queue)
     pyglet.app.run()
-    avatar_update_queue.put(None)
 
+    avatar_update_queue.put(None)
+    async_thread.join()
 
 
 if __name__ == "__main__":
