@@ -391,8 +391,9 @@ class World:
         self.window = pyglet.window.Window(
             caption="VRC3D", resizable=True, fullscreen=False
         )
-        self.window.set_mouse_visible(False)
-        self.window.set_exclusive_mouse(True)
+        self.exclusive_mouse = True
+        self.window.set_mouse_visible(not self.exclusive_mouse)
+        self.window.set_exclusive_mouse(self.exclusive_mouse)
         (r, g, b) = color_to_rgb("#87ceeb")
         gl.glClearColor(r, g, b, 1)
 
@@ -447,6 +448,12 @@ class World:
     def on_key_press(self, KEY, MOD):
         if KEY == key.ESCAPE:
             self.window.close()
+        elif KEY == key.SPACE:
+            self.exclusive_mouse = not self.exclusive_mouse
+            self.window.set_exclusive_mouse(self.exclusive_mouse)
+            self.window.set_mouse_visible(not self.exclusive_mouse)
+        elif KEY == key.ENTER:
+            self.window.set_fullscreen(not self.window.fullscreen)
         elif KEY == key.X:
             self.avatar_update_queue.put({'type': 'wall', 'payload': {'action': 'create', 'color': WALL_COLORS[self.active_color % len(WALL_COLORS)]}})
         elif KEY == key.C:
@@ -455,7 +462,8 @@ class World:
 
 
     def on_mouse_motion(self, x, y, dx, dy):
-        self.camera.update_mouse(Vector(dy / 6, dx / 6))
+        if self.exclusive_mouse:
+            self.camera.update_mouse(Vector(dy / 6, dx / 6))
 
     def on_draw(self):
         self.window.clear()
