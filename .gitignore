@@ -1,1 +1,3 @@
 config
+photos/*.png
+photos/*.jpeg
