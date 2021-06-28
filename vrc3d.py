@@ -4,7 +4,6 @@ import asyncio
 import queue
 from queue import Queue
 import traceback
-from collections import namedtuple
 from concurrent.futures import ThreadPoolExecutor
 
 import aiohttp
@@ -311,10 +310,8 @@ class Cube:
         return len(self.vertices)
 
 
-Mesh = namedtuple('Mesh', ('vertices', 'colors', 'normals', 'tex_coords'))
-
 class Scene:
-    def __init__(self, texture_manager):
+    def __init__(self, texture_manager, max_vertices=500_000):
         self.entities = {}
 
         self.texture_manager = texture_manager
@@ -324,14 +321,12 @@ class Scene:
 
         self.vao = VertexArrayObject()
         with self.vao:
-            self.buffers = Mesh(
-                VertexBufferObject(),
-                VertexBufferObject(),
-                VertexBufferObject(),
-                VertexBufferObject()
-            )
+            self.vertices = VertexBufferObject()
+            self.colors = VertexBufferObject()
+            self.normals = VertexBufferObject()
+            self.tex_coords = VertexBufferObject()
 
-            self.allocate_buffers(500_000)
+            self.allocate_buffers(max_vertices)
 
     def delete_cube(self, entity_id):
         (offset, size) = self.entities[entity_id]
@@ -342,10 +337,10 @@ class Scene:
             (offset, size) = self.entities[entity_id]
 
             for (vbo, data) in [
-                    (self.buffers.vertices, cube.vertices),
-                    (self.buffers.colors, cube.colors),
-                    (self.buffers.normals, cube.normals),
-                    (self.buffers.tex_coords, cube.tex_coords)]:
+                    (self.vertices, cube.vertices),
+                    (self.colors, cube.colors),
+                    (self.normals, cube.normals),
+                    (self.tex_coords, cube.tex_coords)]:
                 vbo.write_slice(offset, data)
 
         elif self.data_size + len(cube.vertices) < self.buffer_size:
@@ -353,24 +348,24 @@ class Scene:
             self.data_size += size
 
             for (vbo, data) in [
-                    (self.buffers.vertices, cube.vertices),
-                    (self.buffers.colors, cube.colors),
-                    (self.buffers.normals, cube.normals),
-                    (self.buffers.tex_coords, cube.tex_coords)]:
+                    (self.vertices, cube.vertices),
+                    (self.colors, cube.colors),
+                    (self.normals, cube.normals),
+                    (self.tex_coords, cube.tex_coords)]:
 
                 vbo.write_slice(offset, data)
         else:
-            raise Exception("Ooops!")
+            raise ValueError("Exceeded available size of vertex buffer.")
 
     def allocate_buffers(self, size):
         self.buffer_size = size
         self.data_size = 0
 
         for (vbo, layout_offset) in [
-            (self.buffers.vertices, 0),
-            (self.buffers.colors, 1),
-            (self.buffers.normals, 2),
-            (self.buffers.tex_coords, 3),
+            (self.vertices, 0),
+            (self.colors, 1),
+            (self.normals, 2),
+            (self.tex_coords, 3),
         ]:
             vbo.write([0] * self.buffer_size)
             with vbo:
@@ -433,8 +428,7 @@ class World:
 
         texture_manager = TextureManager(150, 150, 50)
 
-
-        self.avatars = Scene(texture_manager)
+        self.avatars = Scene(texture_manager, max_vertices=10_000)
 
         self.camera = Camera(
             self.shader,
