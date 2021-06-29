@@ -40,7 +40,10 @@ def create_shader(shader_type, source_path):
 
 
 class Shader:
-    def __init__(self, vert_path, frag_path):
+    def __init__(self, name=None, vert_path=None, frag_path=None):
+        vert_path = vert_path or name + ".vert.glsl"
+        frag_path = frag_path or name + ".frag.glsl"
+
         self.program = gl.glCreateProgram()
 
         self.vert_shader = create_shader(gl.GL_VERTEX_SHADER, vert_path)

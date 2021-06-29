@@ -407,7 +407,7 @@ class World:
         gl.glActiveTexture(gl.GL_TEXTURE0)
         gl.glActiveTexture(gl.GL_TEXTURE1)
 
-        self.shader = Shader("vert.glsl", "frag.glsl")
+        self.shader = Shader("world")
         self.shader.use()
 
         texture_manager = TextureManager(128, 128, 8)
