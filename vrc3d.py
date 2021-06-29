@@ -405,7 +405,7 @@ class Scene:
 
 
 class World:
-    def __init__(self, entity_queue, avatar_update_queue):
+    def __init__(self, entity_queue, avatar_update_queue, speed=None):
         self.entity_queue = entity_queue
         self.avatar_update_queue = avatar_update_queue
 
@@ -470,6 +470,7 @@ class World:
         self.sky_scene = Scene(max_vertices=13)
         self.sky_scene.add_cube(1, Quad())
 
+        self.speed = speed
         self.t0 = time.time()
 
     def on_key_press(self, KEY, MOD):
@@ -495,7 +496,11 @@ class World:
     def on_draw(self):
         self.window.clear()
 
-        sun_position = sun.position(LONGITUDE, LATITUDE, datetime.datetime.utcnow())
+
+        utctime = datetime.datetime.utcnow()
+        if self.speed:
+            utctime += datetime.timedelta(seconds=self.speed * (time.time() - self.t0))
+        sun_position = sun.position(LONGITUDE, LATITUDE, utctime)
 
         self.shader.use()
         self.camera.apply()
@@ -656,7 +661,7 @@ def main(args):
         async_thread.start()
 
     try:
-        World(entity_queue, avatar_update_queue)
+        World(entity_queue, avatar_update_queue, speed=args.speed)
         pyglet.app.run()
     finally:
         if args.connect:
@@ -666,4 +671,6 @@ def main(args):
 if __name__ == "__main__":
     argument_parser = argparse.ArgumentParser("Virtual RC 3D")
     argument_parser.add_argument("--no-connect", action='store_false', dest='connect')
+    argument_parser.add_argument("--speed", type=int)
+
     main(argument_parser.parse_args())
