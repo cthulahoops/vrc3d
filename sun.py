@@ -49,6 +49,8 @@ def angular_position(longitude, latitude, dt):
     decl = declination(dt)
     elevation = asin(sin(decl) * sin(latitude) + cos(decl) * cos(latitude) * cos(hra))
     azimuth = acos((sin(decl) * cos(latitude) - cos(decl) * sin(latitude) * cos(hra)) / cos(elevation))
+    if hra > 0:
+        azimuth = 2 * pi - azimuth
 
     return AngularPosition(azimuth, elevation)
 
