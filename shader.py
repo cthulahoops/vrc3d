@@ -34,7 +34,7 @@ def create_shader(shader_type, source_path):
     gl.glGetShaderInfoLog(target, log_length, None, log_buffer)
 
     if log_length:
-        raise ValueError(f"SHADER ERROR: {log_buffer.value}")
+        raise SyntaxError(f"SHADER ERROR:\n{log_buffer.value.decode()}")
 
     return target
 

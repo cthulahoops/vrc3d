@@ -309,9 +309,20 @@ class Cube:
     def __len__(self):
         return len(self.vertices)
 
+class Quad:
+    def __init__(self):
+        depth = -1.0
+        self.vertices = [-1.0, -1.0, depth, -1.0, 1.0, depth, 1.0, 1.0, depth, 1.0, -1.0, depth]
+        self.normals = [0] * 12
+        self.colors = [1.0] * 12
+        self.tex_coords = [0] * 12
+
+    def __len__(self):
+        return len(self.vertices)
+
 
 class Scene:
-    def __init__(self, texture_manager, max_vertices=500_000):
+    def __init__(self, texture_manager=None, max_vertices=500_000):
         self.entities = {}
 
         self.texture_manager = texture_manager
@@ -376,10 +387,11 @@ class Scene:
 
     def draw(self, shader):
         with self.vao:
-            gl.glBindTexture(
-                gl.GL_TEXTURE_2D_ARRAY, self.texture_manager.texture_array
-            )
-            shader["texture_array_sampler"] = 1
+            if self.texture_manager:
+                gl.glBindTexture(
+                    gl.GL_TEXTURE_2D_ARRAY, self.texture_manager.texture_array
+                )
+                shader["texture_array_sampler"] = 1
             gl.glDrawArrays(gl.GL_QUADS, 0, self.data_size)
 
 
@@ -445,6 +457,10 @@ class World:
 
         self.active_color = 0
 
+        self.sky_shader = Shader("sky")
+        self.sky_scene = Scene(max_vertices=13)
+        self.sky_scene.add_cube(1, Quad())
+
     def on_key_press(self, KEY, MOD):
         if KEY == key.ESCAPE:
             self.window.close()
@@ -467,11 +483,19 @@ class World:
 
     def on_draw(self):
         self.window.clear()
+
+
+        self.shader.use()
         self.camera.apply()
         self.shader["tile_texture"] = 1
         self.batch.draw(self.shader)
         self.shader["tile_texture"] = 0
         self.avatars.draw(self.shader)
+
+        self.sky_shader.use()
+        self.sky_shader["rotation_matrix"] = self.camera.r_matrix
+        self.sky_shader["projection_matrix"] = self.camera.p_matrix
+        self.sky_scene.draw(self.sky_shader)
 
     def add_entity(self, entity):
         if entity["type"] == "Wall":

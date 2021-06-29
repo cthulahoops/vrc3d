@@ -13,6 +13,7 @@ class Camera:
         self.rotation = rotation
 
         self.mv_matrix = matrix.Matrix()
+        self.r_matrix = matrix.Matrix()
         self.p_matrix = matrix.Matrix()
 
         # shaders
@@ -39,6 +40,11 @@ class Camera:
         self.p_matrix.perspective(60, float(self.width) / self.height, 0.1, 500)
 
         # create modelview matrix
+
+        self.r_matrix.load_identity()
+        self.r_matrix.rotate_2d(
+            2 * math.pi * self.rotation[1] / 360, 2 * math.pi * self.rotation[0] / 360
+        )
 
         self.mv_matrix.load_identity()
         self.mv_matrix.rotate_2d(
