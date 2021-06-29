@@ -191,8 +191,13 @@ def add_audioroom(batch, entity):
 
 def add_avatar(batch, entity):
     entity_id = entity["id"]
-    batch.texture_manager.add_texture(entity_id, PHOTOS[entity_id])
-    texture_index = batch.texture_manager.textures.index(entity_id)
+
+    try:
+        batch.texture_manager.add_texture(entity_id, PHOTOS[entity_id])
+        texture_index = batch.texture_manager.textures.index(entity_id)
+    except pyglet.gl.lib.GLException:
+        texture_index = -1
+
     #  texture = get_texture("avatar.png", file=io.BytesIO())
 
     x0, x1 = (-0.0, 1.0)
