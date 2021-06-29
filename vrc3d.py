@@ -198,8 +198,6 @@ def add_avatar(batch, entity):
     except pyglet.gl.lib.GLException:
         texture_index = -1
 
-    #  texture = get_texture("avatar.png", file=io.BytesIO())
-
     x0, x1 = (-0.0, 1.0)
     y0, y1 = (-1.0, 1.0)
 
