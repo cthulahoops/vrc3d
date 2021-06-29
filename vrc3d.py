@@ -2,6 +2,7 @@ import ctypes
 import threading
 import asyncio
 import queue
+import time
 from queue import Queue
 import traceback
 from concurrent.futures import ThreadPoolExecutor
@@ -464,6 +465,8 @@ class World:
         self.sky_scene = Scene(max_vertices=13)
         self.sky_scene.add_cube(1, Quad())
 
+        self.t0 = time.time()
+
     def on_key_press(self, KEY, MOD):
         if KEY == key.ESCAPE:
             self.window.close()
@@ -498,6 +501,7 @@ class World:
         self.sky_shader.use()
         self.sky_shader["rotation_matrix"] = self.camera.r_matrix
         self.sky_shader["projection_matrix"] = self.camera.p_matrix
+        self.sky_shader["current_time"] = time.time() - self.t0
         self.sky_scene.draw(self.sky_shader)
 
     def add_entity(self, entity):

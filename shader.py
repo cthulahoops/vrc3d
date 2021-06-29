@@ -75,6 +75,8 @@ class Shader:
             )
         elif isinstance(value, Vector):
             gl.glUniform3f(location, value.x, value.y, value.z)
+        elif isinstance(value, float):
+            gl.glUniform1f(location, gl.GLfloat(value))
         else:
             gl.glUniform1i(location, value)
 
