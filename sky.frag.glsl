@@ -117,7 +117,7 @@ vec3 atmosphere(vec3 r, vec3 r0, vec3 pSun, float iSun, float rPlanet, float rAt
     }
 
     // Calculate and return the final color.
-    return iSun * (pRlh * kRlh * totalRlh + pMie * kMie * totalMie);
+    return iSun * (3.0 * pRlh * kRlh * totalRlh + pMie * kMie * totalMie);
 }
 
 void main(void) {
