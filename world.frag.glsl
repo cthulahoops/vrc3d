@@ -11,6 +11,7 @@ in vec3 interpolated_position;
 
 uniform vec3 camera;
 uniform int tile_texture;
+uniform vec3 sun_position;
 // in float interpolated_shading_value;
 
 void main(void) {
@@ -28,7 +29,7 @@ void main(void) {
 
 	float fog = clamp(1 - length(camera - interpolated_position) / 60, 0.5, 1);
 
-	vec3 light_direction = normalize(vec3(0.3, 0.5, 0.2));
+	vec3 light_direction = normalize(sun_position);
 	vec3 diffuse = vec3(0.3, 0.3, 0.2) * max(0, dot(local_normal, light_direction));
 	vec3 ambient = vec3(0.7, 0.7, 0.9);
 

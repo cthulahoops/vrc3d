@@ -6,6 +6,8 @@ import time
 from queue import Queue
 import traceback
 from concurrent.futures import ThreadPoolExecutor
+import datetime
+import argparse
 
 import aiohttp
 
@@ -22,6 +24,7 @@ from vector import Vector
 from shader import Shader
 from texture_manager import TextureManager
 import photos
+import sun
 
 COLORS = {
     "gray": "#919c9c",
@@ -35,6 +38,8 @@ COLORS = {
 
 WALL_COLORS = list(COLORS.keys())
 
+LONGITUDE = sun.radians(-73.985)
+LATITUDE = sun.radians(40.6913)
 
 PHOTOS = {}
 
@@ -222,9 +227,9 @@ def add_floor(batch):
 
     add_cube(
         batch,
-        -1,
+        "floor",
         {"x": 500, "y": 500},
-        Vector(1000, 0.001, 1000),
+        Vector(1000, 0.0001, 1000),
         color="#eeeeee",
         texture=tex_coords(x0, x1, y0, y1, texture_index),
     )
@@ -490,18 +495,21 @@ class World:
     def on_draw(self):
         self.window.clear()
 
+        sun_position = sun.position(LONGITUDE, LATITUDE, datetime.datetime.utcnow())
 
         self.shader.use()
         self.camera.apply()
         self.shader["tile_texture"] = 1
         self.batch.draw(self.shader)
         self.shader["tile_texture"] = 0
+        self.sky_shader["sun_position"] = sun_position
         self.avatars.draw(self.shader)
 
         self.sky_shader.use()
         self.sky_shader["rotation_matrix"] = self.camera.r_matrix
         self.sky_shader["projection_matrix"] = self.camera.p_matrix
-        self.sky_shader["current_time"] = time.time() - self.t0
+#        self.sky_shader["current_time"] = time.time() - self.t0
+        self.sky_shader["sun_position"] = sun_position
         self.sky_scene.draw(self.sky_shader)
 
     def add_entity(self, entity):
@@ -637,21 +645,25 @@ async def async_thread_main(entity_queue, avatar_update_queue_future):
         pass
 
 
-def main():
+def main(args):
     entity_queue = Queue()
     avatar_update_queue = Queue()
 
-    async_thread = threading.Thread(
-            target=lambda: asyncio.run(async_thread_main(entity_queue, avatar_update_queue))
-    )
-    async_thread.start()
+    if args.connect:
+        async_thread = threading.Thread(
+                target=lambda: asyncio.run(async_thread_main(entity_queue, avatar_update_queue))
+        )
+        async_thread.start()
 
     try:
         World(entity_queue, avatar_update_queue)
         pyglet.app.run()
     finally:
-        avatar_update_queue.put(None)
-        async_thread.join()
+        if args.connect:
+            avatar_update_queue.put(None)
+            async_thread.join()
 
 if __name__ == "__main__":
-    main()
+    argument_parser = argparse.ArgumentParser("Virtual RC 3D")
+    argument_parser.add_argument("--no-connect", action='store_false', dest='connect')
+    main(argument_parser.parse_args())

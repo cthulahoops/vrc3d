@@ -5,6 +5,7 @@ out vec3 fragment_color;
 in vec4 position;
 
 uniform float current_time;
+uniform vec3 sun_position;
 
 #define PI 3.1415926535
 
@@ -120,10 +121,15 @@ vec3 atmosphere(vec3 r, vec3 r0, vec3 pSun, float iSun, float rPlanet, float rAt
 }
 
 void main(void) {
-    vec3 sun_position = normalize(vec3(cos(0.1 * current_time), sin(0.1 * current_time), 0.0));
+    if (position.y < 0) {
+	fragment_color = vec3(0.3, 0.3, 0.3);
+	return;
+    }
+
+    vec3 normal_sun_position = normalize(sun_position);
     vec3 normal_position = normalize(position.xyz);
 
-    float sun = 1.0 - smoothstep(0.01, 0.015, distance(normal_position, sun_position));
+    float sun = 1.0 - smoothstep(0.01, 0.020, distance(normal_position, normal_sun_position));
 
     vec3 sky1 = vec3(0.29, 0.74, 0.98);
     vec3 sky2 = vec3(1.0, 1.0, 1.0);
