@@ -644,12 +644,12 @@ def main():
     )
     async_thread.start()
 
-    World(entity_queue, avatar_update_queue)
-    pyglet.app.run()
-
-    avatar_update_queue.put(None)
-    async_thread.join()
-
+    try:
+        World(entity_queue, avatar_update_queue)
+        pyglet.app.run()
+    finally:
+        avatar_update_queue.put(None)
+        async_thread.join()
 
 if __name__ == "__main__":
     main()
