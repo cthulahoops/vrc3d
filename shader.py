@@ -64,7 +64,7 @@ class Shader:
     def find_uniform(self, name):
         location = gl.glGetUniformLocation(self.program, ctypes.create_string_buffer(name.encode('utf-8')))
         if location < 0:
-            raise ValueError("Invalid uniform: %r" % (name,))
+            print("WARNING: Undefined or unused uniform: %r" % (name,))
         return location
 
     def __setitem__(self, key, value):

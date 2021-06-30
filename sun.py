@@ -67,7 +67,7 @@ def position(longitude, latitude, dt):
 def run_example():
     latitude = radians(40.7)
     longitude = radians(-74.006)
-    dt = datetime.datetime(year=2021, month=6, day=29, hour=16, minute=50, second=0)
+    dt = datetime.datetime(year=2021, month=6, day=29, hour=22, minute=00, second=0)
     print(dt)
     print(f"SUMMARY FOR {degrees(longitude)}, {degrees(latitude)}")
     print(f"Equation of time: {equation_of_time(dt)}")

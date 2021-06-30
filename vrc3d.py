@@ -1,3 +1,4 @@
+import math
 import ctypes
 import threading
 import asyncio
@@ -22,6 +23,7 @@ import pyglet
 from camera import Camera
 from vector import Vector
 from shader import Shader
+from matrix import Matrix
 from texture_manager import TextureManager
 import photos
 import sun
@@ -412,6 +414,7 @@ class World:
         self.window = pyglet.window.Window(
             caption="VRC3D", resizable=True, fullscreen=False
         )
+        pyglet.gl.Config(major_version=3, minor_version=3)
         self.exclusive_mouse = True
         self.window.set_mouse_visible(not self.exclusive_mouse)
         self.window.set_exclusive_mouse(self.exclusive_mouse)
@@ -466,8 +469,11 @@ class World:
 
         self.active_color = 0
 
+        texture_manager = TextureManager(4096, 2048, 1)
+        texture_manager.add_texture("starmap")
+
         self.sky_shader = Shader("sky")
-        self.sky_scene = Scene(max_vertices=13)
+        self.sky_scene = Scene(texture_manager, max_vertices=13)
         self.sky_scene.add_cube(1, Quad())
 
         self.speed = speed
@@ -507,13 +513,18 @@ class World:
         self.shader["tile_texture"] = 1
         self.batch.draw(self.shader)
         self.shader["tile_texture"] = 0
-        self.sky_shader["sun_position"] = sun_position
+        self.shader["sun_position"] = sun_position
         self.avatars.draw(self.shader)
 
         self.sky_shader.use()
         self.sky_shader["rotation_matrix"] = self.camera.r_matrix
         self.sky_shader["projection_matrix"] = self.camera.p_matrix
 #        self.sky_shader["current_time"] = time.time() - self.t0
+        celestial_matrix = Matrix()
+        celestial_matrix.load_identity()
+        celestial_matrix.rotate(math.pi/2 - LATITUDE, 0.1, 0.0, 0.0)
+
+        self.sky_shader["celestial_matrix"] = celestial_matrix
         self.sky_shader["sun_position"] = sun_position
         self.sky_scene.draw(self.sky_shader)
 

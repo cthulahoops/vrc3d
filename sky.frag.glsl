@@ -4,13 +4,17 @@ out vec3 fragment_color;
 
 in vec4 position;
 
-uniform float current_time;
+uniform sampler2DArray texture_array_sampler;
+
+uniform mat4 celestial_matrix;
 uniform vec3 sun_position;
+uniform float current_time;
+
 
 #define PI 3.1415926535
 
-float grid(float altitude, float azimuth) {
-    return 1.0 - step(0.4, mod(altitude, 15)) * step(0.4, mod(azimuth, 15));
+float grid(vec2 position) {
+    return 1.0 - step(0.1, mod(position.y, 15)) * step(0.1, mod(position.x, 15));
 }
 
 #define iSteps 16
@@ -120,6 +124,16 @@ vec3 atmosphere(vec3 r, vec3 r0, vec3 pSun, float iSun, float rPlanet, float rAt
     return iSun * (3.0 * pRlh * kRlh * totalRlh + pMie * kMie * totalMie);
 }
 
+vec2 angular_position(vec4 position) {
+    float altitude = 360.0 * atan(position.y / length(position.xz)) / (2.0 * PI);
+    float azimuth = 90.0 + 360.0 * atan(position.z / position.x) / (2.0 * PI);
+    if (position.x < 0) {
+        azimuth = 180.0 + azimuth;
+    }
+
+    return vec2(azimuth, altitude);
+}
+
 void main(void) {
     if (position.y < 0) {
 	fragment_color = vec3(0.3, 0.3, 0.3);
@@ -134,10 +148,13 @@ void main(void) {
     vec3 sky1 = vec3(0.29, 0.74, 0.98);
     vec3 sky2 = vec3(1.0, 1.0, 1.0);
 
-    float altitude = 360.0 * atan(normal_position.y / length(normal_position.xz)) / (2.0 * PI);
-    float azimuth = 360.0 * atan(normal_position.z / normal_position.x) / (2.0 * PI);
+    vec4 celestial_position = celestial_matrix * vec4(normal_position, 1.0);
 
-    vec3 color = atmosphere(
+    vec2 angular_position = angular_position(celestial_position);
+
+    vec4 starmap_color = texture(texture_array_sampler, vec3(angular_position.x / 360.0, (90.0 + angular_position.y) / 180.0, 0));
+
+    vec3 atmosphere_color = atmosphere(
         normal_position,                // normalized ray direction
         vec3(0,6372e3,0),               // ray origin
         sun_position,                   // position of the sun
@@ -150,8 +167,10 @@ void main(void) {
         1.2e3,                          // Mie scale height
         0.998                           // Mie preferred scattering direction
     );
-    color = 1.0 - exp(-1.0 * color);
-    fragment_color = color; // mix(sky2, sky1, normal_position.y);
+    atmosphere_color = 1.0 - exp(-1.0 * max(atmosphere_color, 0.7 * starmap_color.rgb));
+    fragment_color = atmosphere_color; // mix(sky2, sky1, normal_position.y);
+//    fragment_color = vec3(azimuth / 360.0);
+
     // fragment_color += vec3(sun);
-    // fragment_color += vec3(0.0, 1.0, 0.0) * grid(altitude, azimuth);
+//    fragment_color += vec3(0.3, 0.3, 0.3) * grid(angular_position);
 }
