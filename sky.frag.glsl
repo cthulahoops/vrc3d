@@ -135,14 +135,15 @@ vec2 angular_position(vec4 position) {
 }
 
 void main(void) {
+    vec3 normal_position = normalize(position.xyz);
+
     if (position.y < 0) {
-	fragment_color = vec3(0.3, 0.3, 0.3);
+        float d = length(normal_position.xz);
+	fragment_color = mix(vec3(0.2, 0.3, 0.1), vec3(0.6,0.6,0.6), d / 2.0 );
 	return;
     }
 
     vec3 normal_sun_position = normalize(sun_position);
-    vec3 normal_position = normalize(position.xyz);
-
     float sun = 1.0 - smoothstep(0.01, 0.020, distance(normal_position, normal_sun_position));
 
     vec3 sky1 = vec3(0.29, 0.74, 0.98);
