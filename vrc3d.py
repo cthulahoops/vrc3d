@@ -522,6 +522,8 @@ class World:
 #        self.sky_shader["current_time"] = time.time() - self.t0
         celestial_matrix = Matrix()
         celestial_matrix.load_identity()
+        # TODO: This is totally inaccurate, but gives the correct effect.
+        celestial_matrix.rotate(2 * math.pi * sun.time_of_day(utctime) / (24 * 3600), 0.0, 1.0, 0.0)
         celestial_matrix.rotate(math.pi/2 - LATITUDE, 0.1, 0.0, 0.0)
 
         self.sky_shader["celestial_matrix"] = celestial_matrix
