@@ -1,5 +1,3 @@
-import math
-import ctypes
 import threading
 import asyncio
 import queue
@@ -23,10 +21,10 @@ import pyglet
 from camera import Camera
 from vector import Vector
 from shader import Shader
-from matrix import Matrix
+from scene import Scene, tex_coords, color_to_rgb, Cube
 from texture_manager import TextureManager
 import photos
-import sun
+from sky import Sky
 
 COLORS = {
     "gray": "#919c9c",
@@ -40,30 +38,8 @@ COLORS = {
 
 WALL_COLORS = list(COLORS.keys())
 
-LONGITUDE = sun.radians(-73.985)
-LATITUDE = sun.radians(40.6913)
-
 PHOTOS = {}
 
-def tex_coords(x0, x1, y0, y1, texture_index):
-    return [
-        x0,
-        y0,
-        texture_index,
-        x1,
-        y0,
-        texture_index,
-        x1,
-        y1,
-        texture_index,
-        x0,
-        y1,
-        texture_index,
-    ]
-
-
-def color_to_rgb(color):
-    return (int(color[1:3], 16) / 255, int(color[3:5], 16) / 255, int(color[5:7], 16) / 255)
 
 
 def add_wall(batch, entity):
@@ -243,167 +219,7 @@ def add_cube(scene, entity_id, entity_position, *a, **k):
     scene.add_cube(entity_id, cube)
 
 
-class VertexArrayObject:
-    def __init__(self):
-        self._id = gl.GLuint(0)
-        gl.glGenVertexArrays(1, ctypes.byref(self._id))
 
-    def __enter__(self):
-        gl.glBindVertexArray(self._id)
-
-    def __exit__(self, exc_type, exc_value, exc_traceback):
-        gl.glBindVertexArray(0)
-
-
-class VertexBufferObject:
-    def __init__(self):
-        self._id = gl.GLuint(0)
-        gl.glGenBuffers(1, ctypes.byref(self._id))
-
-    def __enter__(self):
-        gl.glBindBuffer(gl.GL_ARRAY_BUFFER, self._id)
-
-    def __exit__(self, exc_type, exc_value, exc_traceback):
-        gl.glBindBuffer(gl.GL_ARRAY_BUFFER, 0)
-
-    def write_slice(self, offset, data):
-        with self:
-            gl.glBufferSubData(
-                gl.GL_ARRAY_BUFFER,
-                ctypes.sizeof(gl.GLfloat) * offset,
-                ctypes.sizeof(gl.GLfloat) * len(data),
-                (gl.GLfloat * len(data))(*data),
-            )
-
-    def write(self, data):
-        with self:
-            gl.glBufferData(
-                gl.GL_ARRAY_BUFFER,
-                ctypes.sizeof(gl.GLfloat) * len(data),
-                (gl.GLfloat * len(data))(*data),
-                gl.GL_DYNAMIC_DRAW,
-            )
-
-class Cube:
-    def __init__(self, pos, size=Vector(1, 1, 1), texture=None, color=None, offset=Vector(0, 0, 0)):
-
-        a = pos + offset - Vector(size.x, 0, size.z) / 2
-        b = a + size
-
-        colors = color_to_rgb(color or "#114433") * 4
-
-        if not texture:
-            texture = tex_coords(0, 0, 1, 1, -1)
-
-        vertices = [
-            (b.x, a.y, a.z, a.x, a.y, a.z, a.x, b.y, a.z, b.x, b.y, a.z),  # Back
-            (a.x, a.y, b.z, b.x, a.y, b.z, b.x, b.y, b.z, a.x, b.y, b.z),  # Front
-            (a.x, a.y, a.z, a.x, a.y, b.z, a.x, b.y, b.z, a.x, b.y, a.z),  # Left
-            (b.x, a.y, b.z, b.x, a.y, a.z, b.x, b.y, a.z, b.x, b.y, b.z),  # Right
-            (a.x, a.y, a.z, b.x, a.y, a.z, b.x, a.y, b.z, a.x, a.y, b.z),  # Bottom
-            (a.x, b.y, b.z, b.x, b.y, b.z, b.x, b.y, a.z, a.x, b.y, a.z),  # Top
-        ]
-
-        normals = [(0, 0, -1), (0, 0, 1), (-1, 0, 0), (1, 0, 0), (0, -1, 0), (0, 1, 0)]
-
-        self.vertices = []
-        self.colors = []
-        self.normals = []
-        self.tex_coords = []
-
-        for (v, n) in zip(vertices, normals):
-            self.vertices.extend(v)
-            self.colors.extend(colors)
-            self.normals.extend(n * 4)
-            self.tex_coords.extend(texture)
-
-    def __len__(self):
-        return len(self.vertices)
-
-class Quad:
-    def __init__(self):
-        depth = -1.0
-        self.vertices = [-1.0, -1.0, depth, -1.0, 1.0, depth, 1.0, 1.0, depth, 1.0, -1.0, depth]
-        self.normals = [0] * 12
-        self.colors = [1.0] * 12
-        self.tex_coords = [0] * 12
-
-    def __len__(self):
-        return len(self.vertices)
-
-
-class Scene:
-    def __init__(self, texture_manager=None, max_vertices=500_000):
-        self.entities = {}
-
-        self.texture_manager = texture_manager
-
-        self.data_size = 0
-        self.buffer_size = 0
-
-        self.vao = VertexArrayObject()
-        with self.vao:
-            self.vertices = VertexBufferObject()
-            self.colors = VertexBufferObject()
-            self.normals = VertexBufferObject()
-            self.tex_coords = VertexBufferObject()
-
-            self.allocate_buffers(max_vertices)
-
-    def delete_cube(self, entity_id):
-        (offset, size) = self.entities[entity_id]
-        self.buffers.tex_coords.write_slice(offset, [-2] * size)
-
-    def add_cube(self, entity_id, cube):
-        if entity_id in self.entities:
-            (offset, size) = self.entities[entity_id]
-
-            for (vbo, data) in [
-                    (self.vertices, cube.vertices),
-                    (self.colors, cube.colors),
-                    (self.normals, cube.normals),
-                    (self.tex_coords, cube.tex_coords)]:
-                vbo.write_slice(offset, data)
-
-        elif self.data_size + len(cube.vertices) < self.buffer_size:
-            (offset, size) = self.entities[entity_id] = (self.data_size, len(cube))
-            self.data_size += size
-
-            for (vbo, data) in [
-                    (self.vertices, cube.vertices),
-                    (self.colors, cube.colors),
-                    (self.normals, cube.normals),
-                    (self.tex_coords, cube.tex_coords)]:
-
-                vbo.write_slice(offset, data)
-        else:
-            raise ValueError("Exceeded available size of vertex buffer.")
-
-    def allocate_buffers(self, size):
-        self.buffer_size = size
-        self.data_size = 0
-
-        for (vbo, layout_offset) in [
-            (self.vertices, 0),
-            (self.colors, 1),
-            (self.normals, 2),
-            (self.tex_coords, 3),
-        ]:
-            vbo.write([0] * self.buffer_size)
-            with vbo:
-                gl.glVertexAttribPointer(
-                    layout_offset, 3, gl.GL_FLOAT, gl.GL_FALSE, 0, 0
-                )
-                gl.glEnableVertexAttribArray(layout_offset)
-
-    def draw(self, shader):
-        with self.vao:
-            if self.texture_manager:
-                gl.glBindTexture(
-                    gl.GL_TEXTURE_2D_ARRAY, self.texture_manager.texture_array
-                )
-                shader["texture_array_sampler"] = 1
-            gl.glDrawArrays(gl.GL_QUADS, 0, self.data_size)
 
 
 class World:
@@ -472,12 +288,10 @@ class World:
         texture_manager = TextureManager(4096, 2048, 1)
         texture_manager.add_texture("starmap")
 
-        self.sky_shader = Shader("sky")
-        self.sky_scene = Scene(texture_manager, max_vertices=13)
-        self.sky_scene.add_cube(1, Quad())
+        self.sky = Sky()
 
-        self.speed = speed
         self.t0 = time.time()
+        self.speed = speed
 
     def on_key_press(self, KEY, MOD):
         if KEY == key.ESCAPE:
@@ -502,11 +316,11 @@ class World:
     def on_draw(self):
         self.window.clear()
 
-
         utctime = datetime.datetime.utcnow()
         if self.speed:
             utctime += datetime.timedelta(seconds=self.speed * (time.time() - self.t0))
-        sun_position = sun.position(LONGITUDE, LATITUDE, utctime)
+
+        sun_position = self.sky.sun_position(utctime)
 
         self.shader.use()
         self.camera.apply()
@@ -516,19 +330,8 @@ class World:
         self.shader["sun_position"] = sun_position
         self.avatars.draw(self.shader)
 
-        self.sky_shader.use()
-        self.sky_shader["rotation_matrix"] = self.camera.r_matrix
-        self.sky_shader["projection_matrix"] = self.camera.p_matrix
-#        self.sky_shader["current_time"] = time.time() - self.t0
-        celestial_matrix = Matrix()
-        celestial_matrix.load_identity()
-        # TODO: This is totally inaccurate, but gives the correct effect.
-        celestial_matrix.rotate(2 * math.pi * sun.time_of_day(utctime) / (24 * 3600), 0.0, 1.0, 0.0)
-        celestial_matrix.rotate(math.pi/2 - LATITUDE, 0.1, 0.0, 0.0)
+        self.sky.draw(self.camera, utctime)
 
-        self.sky_shader["celestial_matrix"] = celestial_matrix
-        self.sky_shader["sun_position"] = sun_position
-        self.sky_scene.draw(self.sky_shader)
 
     def add_entity(self, entity):
         if entity["type"] == "Wall":
