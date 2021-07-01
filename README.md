@@ -25,3 +25,5 @@ python vrc3d.py
 ## Code
 
 Much of the OpenGL code is adapted from a python minecraft clone tutorial found here: https://github.com/obiwac/python-minecraft-clone/
+
+The star map is from NASA: https://svs.gsfc.nasa.gov/4851
