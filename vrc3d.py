@@ -307,6 +307,8 @@ class World:
         elif KEY == key.C:
             self.active_color += 1
             self.avatar_update_queue.put({'type': 'wall', 'payload': {'action': 'update', 'color': WALL_COLORS[self.active_color % len(WALL_COLORS)]}})
+        elif KEY == key.P:
+            print(pyglet.clock.get_fps())
 
 
     def on_mouse_motion(self, x, y, dx, dy):
