@@ -29,8 +29,8 @@ class Sky:
 
     def draw(self, camera, utctime):
         self.shader.use()
-        self.shader["rotation_matrix"] = camera.r_matrix
-        self.shader["projection_matrix"] = camera.p_matrix
+        self.shader["rotation_matrix"] = camera.rotate
+        self.shader["projection_matrix"] = camera.project
 
         declination_matrix = Matrix.rotate(math.pi/2 - LATITUDE, Vector(1.0, 0.0, 0.0))
         # TODO: This is totally inaccurate, but gives the correct effect.

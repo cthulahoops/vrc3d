@@ -5,19 +5,15 @@ from matrix import Matrix
 
 
 class Camera:
-    def __init__(self, shader, width, height, position, rotation):
-        self.shader = shader
+    def __init__(self, width, height, position, rotation):
         self.height = height
         self.width = width
         self.position = position
         self.rotation = rotation
 
-        self.mv_matrix = Matrix.identity()
-        self.r_matrix = Matrix.identity()
-        self.p_matrix = Matrix.identity()
-
-        # shaders
-        self.shader = shader
+        self.translate = Matrix.identity()
+        self.rotate = Matrix.identity()
+        self.project = Matrix.identity()
 
     def update(self, dt, input_vector):
         s = dt * 5
@@ -33,22 +29,13 @@ class Camera:
     def update_mouse(self, input_vector):
         self.rotation += input_vector
 
-    def apply(self):
-        # create projection matrix
+    @property
+    def mvp_matrix(self):
+        return self.translate @ self.rotate @ self.project
 
-        self.p_matrix = Matrix.perspective(60, float(self.width) / self.height, 0.1, 500)
-
-        # create modelview matrix
-
-        self.r_matrix = Matrix.rotate_2d(
+    def compute_matrices(self):
+        self.project = Matrix.perspective(60, float(self.width) / self.height, 0.1, 500)
+        self.rotate = Matrix.rotate_2d(
             2 * math.pi * self.rotation[1] / 360, 2 * math.pi * self.rotation[0] / 360
         )
-
-        self.mv_matrix = Matrix.translate(-self.position) @ self.r_matrix
-
-        # modelviewprojection matrix
-
-        mvp_matrix = self.mv_matrix @ self.p_matrix
-
-        self.shader["matrix"] = mvp_matrix
-        self.shader["camera"] = self.position
+        self.translate = Matrix.translate(-self.position)
