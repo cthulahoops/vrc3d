@@ -20,54 +20,55 @@ WALL_COLORS = list(COLORS.keys())
 
 PHOTOS = {}
 
+
 def add_wall(batch, entity):
-    add_cube(batch, entity['id'], entity["pos"], color=COLORS[entity["color"]])
+    add_cube(batch, entity["id"], entity["pos"], color=COLORS[entity["color"]])
 
 
 def add_note(batch, entity):
-    add_cube(batch, entity['id'], entity["pos"], color=COLORS["yellow"])
+    add_cube(batch, entity["id"], entity["pos"], color=COLORS["yellow"])
 
 
 def add_desk(batch, entity):
     add_cube(
         batch,
-        (entity['id'], 5),
+        (entity["id"], 5),
         entity["pos"],
         Vector(0.9, 0.04, 0.9),
         color=COLORS["orange"],
-        offset=Vector(0, 0.35, 0)
+        offset=Vector(0, 0.35, 0),
     )
     add_cube(
         batch,
-        (entity['id'], 0),
+        (entity["id"], 0),
         entity["pos"],
         Vector(0.04, 0.35, 0.04),
         color="#33333",
-        offset=Vector(-0.4, 0, -0.4)
+        offset=Vector(-0.4, 0, -0.4),
     )
     add_cube(
         batch,
-        (entity['id'], 1),
+        (entity["id"], 1),
         entity["pos"],
         Vector(0.04, 0.35, 0.04),
         color="#33333",
-        offset=Vector(-0.4, 0, 0.4)
+        offset=Vector(-0.4, 0, 0.4),
     )
     add_cube(
         batch,
-        (entity['id'], 2),
+        (entity["id"], 2),
         entity["pos"],
         Vector(0.04, 0.35, 0.04),
         color="#33333",
-        offset=Vector(0.4, 0, -0.4)
+        offset=Vector(0.4, 0, -0.4),
     )
     add_cube(
         batch,
-        (entity['id'], 3),
+        (entity["id"], 3),
         entity["pos"],
         Vector(0.04, 0.35, 0.04),
         color="#33333",
-        offset=Vector(0.4, 0, 0.4)
+        offset=Vector(0.4, 0, 0.4),
     )
 
 
@@ -79,7 +80,7 @@ def add_calendar(batch, entity):
 
     add_cube(
         batch,
-        entity['id'],
+        entity["id"],
         entity["pos"],
         Vector(0.6, 0.6, 0.6),
         texture=tex_coords(x0, x1, y0, y1, texture_index),
@@ -94,7 +95,7 @@ def add_link(batch, entity):
 
     add_cube(
         batch,
-        entity['id'],
+        entity["id"],
         entity["pos"],
         Vector(0.8, 0.8, 0.8),
         texture=tex_coords(x0, x1, y0, y1, texture_index),
@@ -109,7 +110,7 @@ def add_zoomlink(batch, entity):
 
     add_cube(
         batch,
-        entity['id'],
+        entity["id"],
         entity["pos"],
         Vector(0.6, 0.6, 0.6),
         color="#0000ff",
@@ -125,7 +126,7 @@ def add_audioblock(batch, entity):
 
     add_cube(
         batch,
-        entity['id'],
+        entity["id"],
         entity["pos"],
         Vector(0.6, 0.6, 0.6),
         texture=tex_coords(x0, x1, y0, y1, texture_index),
@@ -144,7 +145,7 @@ def add_audioroom(batch, entity):
 
     add_cube(
         batch,
-        entity['id'],
+        entity["id"],
         pos,
         Vector(entity["width"], 0.002, entity["height"]),
         texture=tex_coords(x0, x1, y0, y1, texture_index),
@@ -167,7 +168,7 @@ def add_avatar(batch, entity):
 
     add_cube(
         batch,
-        entity['id'],
+        entity["id"],
         pos,
         Vector(0.05, 0.8, 0.4),
         color="#ffffff",
@@ -244,10 +245,21 @@ class VirtualRc:
             pass
 
     def add_entity(self, entity):
+        entity_id = entity["id"]
+        position = Vector(entity["pos"]["x"], 0, entity["pos"]["y"])
+
         if entity["type"] == "Wall":
             add_wall(self.building, entity)
         elif entity["type"] == "Desk":
-            add_desk(self.building, entity)
+            mesh = (
+                Cube(position, Vector(0.9, 0.04, 0.9), color=COLORS["orange"], offset=Vector(0, 0.35, 0))
+                + Cube(position, Vector(0.04, 0.35, 0.04), color="#33333", offset=Vector(-0.4, 0, -0.4))
+                + Cube(position, Vector(0.04, 0.35, 0.04), color="#33333", offset=Vector(-0.4, 0, 0.4))
+                + Cube(position, Vector(0.04, 0.35, 0.04), color="#33333", offset=Vector(0.4, 0, -0.4))
+                + Cube(position, Vector(0.04, 0.35, 0.04), color="#33333", offset=Vector(0.4, 0, 0.4))
+            )
+
+            self.building.add_cube(entity_id, mesh)
         elif entity["type"] == "Avatar":
             add_avatar(self.avatars, entity)
         elif entity["type"] == "ZoomLink":
@@ -268,7 +280,7 @@ class VirtualRc:
             print(entity["type"], entity)
 
     def handle_entity(self, entity):
-        if entity.get('deleted'):
+        if entity.get("deleted"):
             if entity["type"] == "Avatar":
                 self.avatars.delete_cube(entity["id"])
             else:

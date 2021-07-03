@@ -26,9 +26,7 @@ class World:
     def __init__(self, entity_queue, avatar_update_queue, speed=None, show_grid=False):
         self.avatar_update_queue = avatar_update_queue
 
-        self.window = pyglet.window.Window(
-            caption="VRC3D", resizable=True, fullscreen=False
-        )
+        self.window = pyglet.window.Window(caption="VRC3D", resizable=True, fullscreen=False)
         pyglet.gl.Config(major_version=3, minor_version=3)
         self.exclusive_mouse = True
         self.window.set_mouse_visible(not self.exclusive_mouse)
@@ -72,18 +70,32 @@ class World:
         elif KEY == window.key.ENTER:
             self.window.set_fullscreen(not self.window.fullscreen)
         elif KEY == window.key.X:
-            self.avatar_update_queue.put({'type': 'wall', 'payload': {'action': 'create', 'color': WALL_COLORS[self.active_color % len(WALL_COLORS)]}})
+            self.avatar_update_queue.put(
+                {
+                    "type": "wall",
+                    "payload": {
+                        "action": "create",
+                        "color": WALL_COLORS[self.active_color % len(WALL_COLORS)],
+                    },
+                }
+            )
         elif KEY == window.key.C:
             self.active_color += 1
-            self.avatar_update_queue.put({'type': 'wall', 'payload': {'action': 'update', 'color': WALL_COLORS[self.active_color % len(WALL_COLORS)]}})
+            self.avatar_update_queue.put(
+                {
+                    "type": "wall",
+                    "payload": {
+                        "action": "update",
+                        "color": WALL_COLORS[self.active_color % len(WALL_COLORS)],
+                    },
+                }
+            )
         elif KEY == window.key.P:
             print(pyglet.clock.get_fps())
-
 
     def on_mouse_motion(self, x, y, dx, dy):
         if self.exclusive_mouse:
             self.camera.update_mouse(Vector(dy / 6, dx / 6))
-
 
     def on_draw(self):
         self.window.clear()
@@ -97,7 +109,6 @@ class World:
         self.camera.compute_matrices()
         self.virtual_rc.draw(sun_position)
         self.sky.draw(self.camera, utctime)
-
 
     def update(self, dt):
         self.virtual_rc.update()
@@ -113,14 +124,15 @@ class World:
             input_vector += Vector(1, 0, 0)
 
         self.camera.update(dt, input_vector)
-        self.avatar_update_queue.put({'type': 'pos', 'payload': self.avatar_position()})
+        self.avatar_update_queue.put({"type": "pos", "payload": self.avatar_position()})
 
     def avatar_position(self):
         return {
-            'x': round(self.camera.position.x),
-            'y': round(self.camera.position.z),
-            'direction': ['up', 'right', 'down', 'left'][round(self.camera.rotation.y / 90) % 4]
+            "x": round(self.camera.position.x),
+            "y": round(self.camera.position.z),
+            "direction": ["up", "right", "down", "left"][round(self.camera.rotation.y / 90) % 4],
         }
+
 
 class DeduplicatingQueue(Queue):
     def __init__(self):
@@ -139,39 +151,42 @@ async def avatar_updates(avatars_update_queue):
         while message := await loop.run_in_executor(executor, avatars_update_queue.get):
             yield message
 
+
 async def space_avatar_worker(avatar_queue):
     async with rctogether.RestApiSession() as session:
         bot_id = None
         for bot in await rctogether.bots.get(session):
-            if bot['emoji'] == "👾":
-                bot_id = bot['id']
+            if bot["emoji"] == "👾":
+                bot_id = bot["id"]
 
         async for message in avatar_updates(avatar_queue):
             try:
-                if message['type'] == 'pos':
-                    pos = message['payload']
+                if message["type"] == "pos":
+                    pos = message["payload"]
 
                     if bot_id:
                         await rctogether.bots.update(session, bot_id, pos)
                     else:
                         bot = await rctogether.bots.create(
-                                session,
-                                name="Extra-dimensional Avatar",
-                                emoji="👾",
-                                x=pos['x'],
-                                y=pos['y'])
-                        bot_id = bot['id']
-                elif message['type'] == 'wall':
-                    if message['payload']['action'] == 'create':
-                        await walls.create(session, bot_id=bot_id, color=message['payload']['color'])
-                    elif message['payload']['action'] == 'upload':
-                        pass # Not supported without getting the wall id.
+                            session,
+                            name="Extra-dimensional Avatar",
+                            emoji="👾",
+                            x=pos["x"],
+                            y=pos["y"],
+                        )
+                        bot_id = bot["id"]
+                elif message["type"] == "wall":
+                    if message["payload"]["action"] == "create":
+                        await walls.create(session, bot_id=bot_id, color=message["payload"]["color"])
+                    elif message["payload"]["action"] == "upload":
+                        pass  # Not supported without getting the wall id.
                         # await walls.update(session, bot_id=bot_id, color=message['payload']['color'])
             except rctogether.api.HttpError:
                 traceback.print_exc()
 
         if bot_id:
             await rctogether.bots.delete(session, bot_id)
+
 
 async def websocket_subscription(entity_queue):
     async with aiohttp.ClientSession() as session:
@@ -198,7 +213,7 @@ def main(args):
 
     if args.connect:
         async_thread = threading.Thread(
-                target=lambda: asyncio.run(async_thread_main(entity_queue, avatar_update_queue))
+            target=lambda: asyncio.run(async_thread_main(entity_queue, avatar_update_queue))
         )
         async_thread.start()
 
@@ -210,10 +225,11 @@ def main(args):
             avatar_update_queue.put(None)
             async_thread.join()
 
+
 if __name__ == "__main__":
     argument_parser = argparse.ArgumentParser("Virtual RC 3D")
-    argument_parser.add_argument("--no-connect", action='store_false', dest='connect')
-    argument_parser.add_argument("--grid", action='store_true')
+    argument_parser.add_argument("--no-connect", action="store_false", dest="connect")
+    argument_parser.add_argument("--grid", action="store_true")
     argument_parser.add_argument("--speed", type=int)
 
     main(argument_parser.parse_args())

@@ -19,12 +19,8 @@ class TextureManager:
         print("::: ", texture_width, texture_height, self.texture_array)
         gl.glBindTexture(gl.GL_TEXTURE_2D_ARRAY, self.texture_array)
 
-        gl.glTexParameteri(
-            gl.GL_TEXTURE_2D_ARRAY, gl.GL_TEXTURE_MAG_FILTER, gl.GL_LINEAR
-        )
-        gl.glTexParameteri(
-            gl.GL_TEXTURE_2D_ARRAY, gl.GL_TEXTURE_MIN_FILTER, gl.GL_LINEAR
-        )
+        gl.glTexParameteri(gl.GL_TEXTURE_2D_ARRAY, gl.GL_TEXTURE_MAG_FILTER, gl.GL_LINEAR)
+        gl.glTexParameteri(gl.GL_TEXTURE_2D_ARRAY, gl.GL_TEXTURE_MIN_FILTER, gl.GL_LINEAR)
 
         gl.glTexImage3D(
             gl.GL_TEXTURE_2D_ARRAY,
@@ -51,9 +47,7 @@ class TextureManager:
             if texture_image:
                 texture_image = io.BytesIO(texture_image)
 
-            texture_image = pyglet.image.load(
-                f"textures/{texture}.png", file=texture_image
-            ).get_image_data()
+            texture_image = pyglet.image.load(f"textures/{texture}.png", file=texture_image).get_image_data()
 
             gl.glBindTexture(gl.GL_TEXTURE_2D_ARRAY, self.texture_array)
             gl.glTexSubImage3D(

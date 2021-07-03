@@ -11,6 +11,7 @@ import sun
 LONGITUDE = sun.radians(-73.985)
 LATITUDE = sun.radians(40.6913)
 
+
 class Sky:
     def __init__(self, show_grid):
         texture_manager = TextureManager(4096, 2048, 1)
@@ -32,7 +33,7 @@ class Sky:
         self.shader["rotation_matrix"] = camera.rotate
         self.shader["projection_matrix"] = camera.project
 
-        declination_matrix = Matrix.rotate(math.pi/2 - LATITUDE, Vector(1.0, 0.0, 0.0))
+        declination_matrix = Matrix.rotate(math.pi / 2 - LATITUDE, Vector(1.0, 0.0, 0.0))
         # TODO: This is totally inaccurate, but gives the correct effect.
         rotation_matrix = Matrix.rotate(2 * math.pi * sun.time_of_day(utctime) / (24 * 3600), Vector(0.0, 1.0, 0.0))
 

@@ -58,11 +58,11 @@ class Shader:
         gl.glDeleteShader(self.frag_shader)
 
     # def __del__(self):
-        # gl.glDeleteProgram(self.program)
+    # gl.glDeleteProgram(self.program)
 
     @functools.lru_cache
     def find_uniform(self, name):
-        location = gl.glGetUniformLocation(self.program, ctypes.create_string_buffer(name.encode('utf-8')))
+        location = gl.glGetUniformLocation(self.program, ctypes.create_string_buffer(name.encode("utf-8")))
         if location < 0:
             print("WARNING: Undefined or unused uniform: %r" % (name,))
         return location
@@ -70,9 +70,7 @@ class Shader:
     def __setitem__(self, key, value):
         location = self.find_uniform(key)
         if isinstance(value, Matrix):
-            gl.glUniformMatrix4fv(
-                location, 1, gl.GL_FALSE, (gl.GLfloat * 16)(*value)
-            )
+            gl.glUniformMatrix4fv(location, 1, gl.GL_FALSE, (gl.GLfloat * 16)(*value))
         elif isinstance(value, Vector):
             gl.glUniform3f(location, *value)
         elif isinstance(value, float):

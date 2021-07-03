@@ -30,8 +30,8 @@ class Vector:
         return self / self.mag()
 
     def cross(self, other):
-        return Vector(*
-            (
+        return Vector(
+            *(
                 self.y * other.z - self.z * other.y,
                 self.z * other.x - self.x * other.z,
                 self.x * other.y - self.y * other.x,

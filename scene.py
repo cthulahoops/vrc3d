@@ -3,6 +3,7 @@ from pyglet import gl
 
 from vector import Vector
 
+
 class Scene:
     def __init__(self, texture_manager=None, max_vertices=500_000):
         self.entities = {}
@@ -30,10 +31,11 @@ class Scene:
             (offset, size) = self.entities[entity_id]
 
             for (vbo, data) in [
-                    (self.vertices, cube.vertices),
-                    (self.colors, cube.colors),
-                    (self.normals, cube.normals),
-                    (self.tex_coords, cube.tex_coords)]:
+                (self.vertices, cube.vertices),
+                (self.colors, cube.colors),
+                (self.normals, cube.normals),
+                (self.tex_coords, cube.tex_coords),
+            ]:
                 vbo.write_slice(offset, data)
 
         elif self.data_size + len(cube.vertices) < self.buffer_size:
@@ -41,10 +43,11 @@ class Scene:
             self.data_size += size
 
             for (vbo, data) in [
-                    (self.vertices, cube.vertices),
-                    (self.colors, cube.colors),
-                    (self.normals, cube.normals),
-                    (self.tex_coords, cube.tex_coords)]:
+                (self.vertices, cube.vertices),
+                (self.colors, cube.colors),
+                (self.normals, cube.normals),
+                (self.tex_coords, cube.tex_coords),
+            ]:
 
                 vbo.write_slice(offset, data)
         else:
@@ -62,19 +65,16 @@ class Scene:
         ]:
             vbo.write([0] * self.buffer_size)
             with vbo:
-                gl.glVertexAttribPointer(
-                    layout_offset, 3, gl.GL_FLOAT, gl.GL_FALSE, 0, 0
-                )
+                gl.glVertexAttribPointer(layout_offset, 3, gl.GL_FLOAT, gl.GL_FALSE, 0, 0)
                 gl.glEnableVertexAttribArray(layout_offset)
 
     def draw(self, shader):
         with self.vao:
             if self.texture_manager:
-                gl.glBindTexture(
-                    gl.GL_TEXTURE_2D_ARRAY, self.texture_manager.texture_array
-                )
+                gl.glBindTexture(gl.GL_TEXTURE_2D_ARRAY, self.texture_manager.texture_array)
                 shader["texture_array_sampler"] = 1
             gl.glDrawArrays(gl.GL_QUADS, 0, self.data_size)
+
 
 class VertexArrayObject:
     def __init__(self):
@@ -117,8 +117,13 @@ class VertexBufferObject:
                 gl.GL_DYNAMIC_DRAW,
             )
 
+
 def color_to_rgb(color):
-    return (int(color[1:3], 16) / 255, int(color[3:5], 16) / 255, int(color[5:7], 16) / 255)
+    return (
+        int(color[1:3], 16) / 255,
+        int(color[3:5], 16) / 255,
+        int(color[5:7], 16) / 255,
+    )
 
 
 def tex_coords(x0, x1, y0, y1, texture_index):
@@ -137,8 +142,16 @@ def tex_coords(x0, x1, y0, y1, texture_index):
         texture_index,
     ]
 
+
 class Cube:
-    def __init__(self, pos, size=Vector(1, 1, 1), texture=None, color=None, offset=Vector(0, 0, 0)):
+    def __init__(
+        self,
+        pos,
+        size=Vector(1, 1, 1),
+        texture=None,
+        color=None,
+        offset=Vector(0, 0, 0),
+    ):
 
         a = pos + offset - Vector(size.x, 0, size.z) / 2
         b = a + size
@@ -173,10 +186,24 @@ class Cube:
     def __len__(self):
         return len(self.vertices)
 
+
 class Quad:
     def __init__(self):
         depth = -1.0
-        self.vertices = [-1.0, -1.0, depth, -1.0, 1.0, depth, 1.0, 1.0, depth, 1.0, -1.0, depth]
+        self.vertices = [
+            -1.0,
+            -1.0,
+            depth,
+            -1.0,
+            1.0,
+            depth,
+            1.0,
+            1.0,
+            depth,
+            1.0,
+            -1.0,
+            depth,
+        ]
         self.normals = [0] * 12
         self.colors = [1.0] * 12
         self.tex_coords = [0] * 12
