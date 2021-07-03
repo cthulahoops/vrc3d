@@ -9,6 +9,7 @@ uniform sampler2DArray texture_array_sampler;
 uniform mat4 celestial_matrix;
 uniform vec3 sun_position;
 uniform float current_time;
+uniform bool show_grid;
 
 
 #define PI 3.1415926535
@@ -173,5 +174,7 @@ void main(void) {
 //    fragment_color = vec3(azimuth / 360.0);
 
     // fragment_color += vec3(sun);
-//    fragment_color += vec3(0.3, 0.3, 0.3) * grid(angular_position);
+    if (show_grid) {
+        fragment_color += vec3(0.3, 0.3, 0.3) * grid(angular_position);
+    }
 }

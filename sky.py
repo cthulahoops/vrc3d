@@ -12,9 +12,11 @@ LONGITUDE = sun.radians(-73.985)
 LATITUDE = sun.radians(40.6913)
 
 class Sky:
-    def __init__(self):
+    def __init__(self, show_grid):
         texture_manager = TextureManager(4096, 2048, 1)
         texture_manager.add_texture("starmap")
+
+        self.show_grid = show_grid
 
         self.shader = Shader("sky")
 
@@ -30,11 +32,13 @@ class Sky:
         self.shader["rotation_matrix"] = camera.r_matrix
         self.shader["projection_matrix"] = camera.p_matrix
 
-        matrix = (
-            # TODO: This is totally inaccurate, but gives the correct effect.
-            Matrix.rotate(2 * math.pi * sun.time_of_day(utctime) / (24 * 3600), Vector(0.0, 1.0, 0.0)) @
-            Matrix.rotate(math.pi/2 - LATITUDE, Vector(0.1, 0.0, 0.0)))
+        declination_matrix = Matrix.rotate(math.pi/2 - LATITUDE, Vector(1.0, 0.0, 0.0))
+        # TODO: This is totally inaccurate, but gives the correct effect.
+        rotation_matrix = Matrix.rotate(2 * math.pi * sun.time_of_day(utctime) / (24 * 3600), Vector(0.0, 1.0, 0.0))
+
+        matrix = declination_matrix @ rotation_matrix
 
         self.shader["celestial_matrix"] = matrix
         self.shader["sun_position"] = self.sun_position(utctime)
+        self.shader["show_grid"] = self.show_grid
         self.scene.draw(self.shader)

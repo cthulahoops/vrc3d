@@ -223,7 +223,7 @@ def add_cube(scene, entity_id, entity_position, *a, **k):
 
 
 class World:
-    def __init__(self, entity_queue, avatar_update_queue, speed=None):
+    def __init__(self, entity_queue, avatar_update_queue, speed=None, show_grid=False):
         self.entity_queue = entity_queue
         self.avatar_update_queue = avatar_update_queue
 
@@ -288,7 +288,7 @@ class World:
         texture_manager = TextureManager(4096, 2048, 1)
         texture_manager.add_texture("starmap")
 
-        self.sky = Sky()
+        self.sky = Sky(show_grid)
 
         self.t0 = time.time()
         self.speed = speed
@@ -477,7 +477,7 @@ def main(args):
         async_thread.start()
 
     try:
-        World(entity_queue, avatar_update_queue, speed=args.speed)
+        World(entity_queue, avatar_update_queue, speed=args.speed, show_grid=args.grid)
         pyglet.app.run()
     finally:
         if args.connect:
@@ -487,6 +487,7 @@ def main(args):
 if __name__ == "__main__":
     argument_parser = argparse.ArgumentParser("Virtual RC 3D")
     argument_parser.add_argument("--no-connect", action='store_false', dest='connect')
+    argument_parser.add_argument("--grid", action='store_true')
     argument_parser.add_argument("--speed", type=int)
 
     main(argument_parser.parse_args())
