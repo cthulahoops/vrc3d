@@ -143,7 +143,26 @@ def tex_coords(x0, x1, y0, y1, texture_index):
     ]
 
 
-class Cube:
+class Mesh:
+    def __init__(self):
+        self.vertices = []
+        self.colors = []
+        self.normals = []
+        self.tex_coords = []
+
+    def __iadd__(self, other):
+        self.vertices.extend(other.vertices)
+        self.colors.extend(other.colors)
+        self.normals.extend(other.normals)
+        self.tex_coords.extend(other.tex_coords)
+
+        return self
+
+    def __len__(self):
+        return len(self.vertices)
+
+
+class Cube(Mesh):
     def __init__(
         self,
         pos,
@@ -172,6 +191,7 @@ class Cube:
 
         normals = [(0, 0, -1), (0, 0, 1), (-1, 0, 0), (1, 0, 0), (0, -1, 0), (0, 1, 0)]
 
+        super().__init__()
         self.vertices = []
         self.colors = []
         self.normals = []
@@ -182,9 +202,6 @@ class Cube:
             self.colors.extend(colors)
             self.normals.extend(n * 4)
             self.tex_coords.extend(texture)
-
-    def __len__(self):
-        return len(self.vertices)
 
 
 class Quad:

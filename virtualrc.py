@@ -2,7 +2,7 @@ import queue
 import pyglet
 
 from vector import Vector
-from scene import Scene, tex_coords, Cube
+from scene import Scene, tex_coords, Cube, Mesh
 from texture_manager import TextureManager
 from shader import Shader
 
@@ -21,181 +21,51 @@ WALL_COLORS = list(COLORS.keys())
 PHOTOS = {}
 
 
-def add_wall(batch, entity):
-    add_cube(batch, entity["id"], entity["pos"], color=COLORS[entity["color"]])
-
-
-def add_note(batch, entity):
-    add_cube(batch, entity["id"], entity["pos"], color=COLORS["yellow"])
-
-
-def add_desk(batch, entity):
-    add_cube(
-        batch,
-        (entity["id"], 5),
-        entity["pos"],
-        Vector(0.9, 0.04, 0.9),
-        color=COLORS["orange"],
-        offset=Vector(0, 0.35, 0),
-    )
-    add_cube(
-        batch,
-        (entity["id"], 0),
-        entity["pos"],
-        Vector(0.04, 0.35, 0.04),
-        color="#33333",
-        offset=Vector(-0.4, 0, -0.4),
-    )
-    add_cube(
-        batch,
-        (entity["id"], 1),
-        entity["pos"],
-        Vector(0.04, 0.35, 0.04),
-        color="#33333",
-        offset=Vector(-0.4, 0, 0.4),
-    )
-    add_cube(
-        batch,
-        (entity["id"], 2),
-        entity["pos"],
-        Vector(0.04, 0.35, 0.04),
-        color="#33333",
-        offset=Vector(0.4, 0, -0.4),
-    )
-    add_cube(
-        batch,
-        (entity["id"], 3),
-        entity["pos"],
-        Vector(0.04, 0.35, 0.04),
-        color="#33333",
-        offset=Vector(0.4, 0, 0.4),
-    )
-
-
-def add_calendar(batch, entity):
-    texture_index = batch.texture_manager.textures.index("calendar")
-
-    x0, x1 = (0.0, 1.0)
-    y0, y1 = (0.0, 1.0)
-
-    add_cube(
-        batch,
-        entity["id"],
-        entity["pos"],
-        Vector(0.6, 0.6, 0.6),
-        texture=tex_coords(x0, x1, y0, y1, texture_index),
-    )
-
-
-def add_link(batch, entity):
-    texture_index = batch.texture_manager.textures.index("link")
-
-    x0, x1 = (0.0, 1.0)
-    y0, y1 = (0.0, 1.0)
-
-    add_cube(
-        batch,
-        entity["id"],
-        entity["pos"],
-        Vector(0.8, 0.8, 0.8),
-        texture=tex_coords(x0, x1, y0, y1, texture_index),
-    )
-
-
-def add_zoomlink(batch, entity):
-    texture_index = batch.texture_manager.textures.index("zoom")
-
-    x0, x1 = (0.0, 1.0)
-    y0, y1 = (0.0, 1.0)
-
-    add_cube(
-        batch,
-        entity["id"],
-        entity["pos"],
-        Vector(0.6, 0.6, 0.6),
-        color="#0000ff",
-        texture=tex_coords(x0, x1, y0, y1, texture_index),
-    )
-
-
-def add_audioblock(batch, entity):
-    texture_index = batch.texture_manager.textures.index("audio_block")
-
-    x0, x1 = (0.0, 1.0)
-    y0, y1 = (0.0, 1.0)
-
-    add_cube(
-        batch,
-        entity["id"],
-        entity["pos"],
-        Vector(0.6, 0.6, 0.6),
-        texture=tex_coords(x0, x1, y0, y1, texture_index),
-    )
-
-
-def add_audioroom(batch, entity):
-    texture_index = batch.texture_manager.textures.index("microphone")
-
-    x0, x1 = (0.0, entity["width"])
-    y0, y1 = (0.0, entity["height"])
-
-    pos = entity["pos"]
-    pos["x"] += entity["width"] / 2 - 0.5
-    pos["y"] += entity["height"] / 2 - 0.5
-
-    add_cube(
-        batch,
-        entity["id"],
-        pos,
-        Vector(entity["width"], 0.002, entity["height"]),
-        texture=tex_coords(x0, x1, y0, y1, texture_index),
-    )
-
-
-def add_avatar(batch, entity):
-    entity_id = entity["id"]
-
-    try:
-        batch.texture_manager.add_texture(entity_id, PHOTOS[entity_id])
-        texture_index = batch.texture_manager.textures.index(entity_id)
-    except pyglet.gl.lib.GLException:
-        texture_index = -1
-
-    x0, x1 = (-0.0, 1.0)
-    y0, y1 = (-1.0, 1.0)
-
-    pos = entity["pos"]
-
-    add_cube(
-        batch,
-        entity["id"],
-        pos,
-        Vector(0.05, 0.8, 0.4),
-        color="#ffffff",
-        texture=tex_coords(x0, x1, y0, y1, texture_index),
-    )
-
-
-def add_floor(batch):
-    texture_index = batch.texture_manager.textures.index("grid")
+def floor(scene):
+    texture_index = scene.texture_manager.textures.index("grid")
 
     x0, x1 = (0.5, 1000.5)
     y0, y1 = (0.5, 1000.5)
 
-    add_cube(
-        batch,
-        "floor",
-        {"x": 500, "y": 500},
+    return Cube(
+        Vector(500, 0, 500),
         Vector(1000, 0.0001, 1000),
         color="#eeeeee",
         texture=tex_coords(x0, x1, y0, y1, texture_index),
     )
 
 
-def add_cube(scene, entity_id, entity_position, *a, **k):
-    position = Vector(entity_position["x"], 0, entity_position["y"])
-    cube = Cube(position, *a, **k)
-    scene.add_cube(entity_id, cube)
+def get_mesh(entity_type, entity, texture):
+    position = Vector(entity["pos"]["x"], 0, entity["pos"]["y"])
+
+    if entity["type"] == "Wall":
+        return Cube(position, color=COLORS[entity["color"]])
+    if entity["type"] == "Desk":
+        leg_color = "#333333"
+        mesh = Mesh()
+        mesh += Cube(position, Vector(0.9, 0.04, 0.9), color=COLORS["orange"], offset=Vector(0, 0.35, 0))
+        mesh += Cube(position, Vector(0.04, 0.35, 0.04), color=leg_color, offset=Vector(-0.4, 0, -0.4))
+        mesh += Cube(position, Vector(0.04, 0.35, 0.04), color=leg_color, offset=Vector(-0.4, 0, 0.4))
+        mesh += Cube(position, Vector(0.04, 0.35, 0.04), color=leg_color, offset=Vector(0.4, 0, -0.4))
+        mesh += Cube(position, Vector(0.04, 0.35, 0.04), color=leg_color, offset=Vector(0.4, 0, 0.4))
+        return mesh
+    if entity["type"] == "Avatar":
+        return Cube(position, Vector(0.05, 0.8, 0.4), color="#ffffff", texture=texture)
+    if entity["type"] == "ZoomLink":
+        return Cube(position, Vector(0.6, 0.6, 0.6), color="#0000ff", texture=texture)
+    if entity["type"] == "Bot":
+        return None
+    if entity["type"] == "Link":
+        return Cube(position, Vector(0.8, 0.8, 0.8), texture=texture)
+    if entity["type"] == "Note":
+        return Cube(position, color=COLORS["yellow"], texture=texture)
+    if entity["type"] == "AudioBlock":
+        return Cube(position, Vector(0.6, 0.6, 0.6), texture=texture)
+    if entity["type"] == "RC::Calendar":
+        return Cube(position, Vector(0.6, 0.6, 0.6), texture=texture)
+    if entity["type"] == "AudioRoom":
+        return Cube(position, Vector(entity["width"], 0.002, entity["height"]), texture=texture)
+    return None
 
 
 class VirtualRc:
@@ -219,7 +89,7 @@ class VirtualRc:
             texture_manager.add_texture(name)
 
         self.building = Scene(texture_manager)
-        add_floor(self.building)
+        self.building.add_cube("floor", floor(self.building))
 
         texture_manager = TextureManager(150, 150, 50)
 
@@ -246,38 +116,50 @@ class VirtualRc:
 
     def add_entity(self, entity):
         entity_id = entity["id"]
-        position = Vector(entity["pos"]["x"], 0, entity["pos"]["y"])
+        entity_type = entity["type"]
 
-        if entity["type"] == "Wall":
-            add_wall(self.building, entity)
-        elif entity["type"] == "Desk":
-            mesh = (
-                Cube(position, Vector(0.9, 0.04, 0.9), color=COLORS["orange"], offset=Vector(0, 0.35, 0))
-                + Cube(position, Vector(0.04, 0.35, 0.04), color="#33333", offset=Vector(-0.4, 0, -0.4))
-                + Cube(position, Vector(0.04, 0.35, 0.04), color="#33333", offset=Vector(-0.4, 0, 0.4))
-                + Cube(position, Vector(0.04, 0.35, 0.04), color="#33333", offset=Vector(0.4, 0, -0.4))
-                + Cube(position, Vector(0.04, 0.35, 0.04), color="#33333", offset=Vector(0.4, 0, 0.4))
-            )
-
-            self.building.add_cube(entity_id, mesh)
-        elif entity["type"] == "Avatar":
-            add_avatar(self.avatars, entity)
-        elif entity["type"] == "ZoomLink":
-            add_zoomlink(self.building, entity)
-        elif entity["type"] == "Bot":
-            pass
-        elif entity["type"] == "Link":
-            add_link(self.building, entity)
-        elif entity["type"] == "Note":
-            add_note(self.building, entity)
-        elif entity["type"] == "AudioBlock":
-            add_audioblock(self.building, entity)
-        elif entity["type"] == "RC::Calendar":
-            add_calendar(self.building, entity)
-        elif entity["type"] == "AudioRoom":
-            add_audioroom(self.building, entity)
+        if entity_type == "Avatar":
+            scene = self.avatars
         else:
-            print(entity["type"], entity)
+            scene = self.building
+
+        texture = self.get_texture(entity_type, entity)
+        mesh = get_mesh(entity_type, entity, texture)
+
+        if mesh:
+            scene.add_cube(entity_id, mesh)
+
+    def get_texture(self, entity_type, entity):
+        x0, x1 = (0.0, 1.0)
+        y0, y1 = (0.0, 1.0)
+
+        if entity_type == "Avatar":
+            entity_id = entity["id"]
+            x0, x1 = (-0.0, 1.0)
+            y0, y1 = (-1.0, 1.0)
+
+            try:
+                self.avatars.texture_manager.add_texture(entity_id, PHOTOS[entity_id])
+                texture_index = self.avatars.texture_manager.textures.index(entity_id)
+            except pyglet.gl.lib.GLException:
+                return None
+        elif entity_type == "ZoomLink":
+            texture_index = self.building.texture_manager.textures.index("zoom")
+        elif entity_type == "Link":
+            texture_index = self.building.texture_manager.textures.index("link")
+        elif entity_type == "AudioBlock":
+            texture_index = self.building.texture_manager.textures.index("audio_block")
+        elif entity_type == "RC::Calendar":
+            texture_index = self.building.texture_manager.textures.index("calendar")
+        elif entity["type"] == "AudioRoom":
+            texture_index = self.building.texture_manager.textures.index("microphone")
+
+            x0, x1 = (0.0, entity["width"])
+            y0, y1 = (0.0, entity["height"])
+        else:
+            return None
+
+        return tex_coords(x0, x1, y0, y1, texture_index)
 
     def handle_entity(self, entity):
         if entity.get("deleted"):
