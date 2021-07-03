@@ -1,7 +1,7 @@
 import math
 
 from vector import Vector
-import matrix
+from matrix import Matrix
 
 
 class Camera:
@@ -12,9 +12,9 @@ class Camera:
         self.position = position
         self.rotation = rotation
 
-        self.mv_matrix = matrix.Matrix()
-        self.r_matrix = matrix.Matrix()
-        self.p_matrix = matrix.Matrix()
+        self.mv_matrix = Matrix.identity()
+        self.r_matrix = Matrix.identity()
+        self.p_matrix = Matrix.identity()
 
         # shaders
         self.shader = shader
@@ -36,27 +36,19 @@ class Camera:
     def apply(self):
         # create projection matrix
 
-        self.p_matrix.load_identity()
-        self.p_matrix.perspective(60, float(self.width) / self.height, 0.1, 500)
+        self.p_matrix = Matrix.perspective(60, float(self.width) / self.height, 0.1, 500)
 
         # create modelview matrix
 
-        self.r_matrix.load_identity()
-        self.r_matrix.rotate_2d(
+        self.r_matrix = Matrix.rotate_2d(
             2 * math.pi * self.rotation[1] / 360, 2 * math.pi * self.rotation[0] / 360
         )
 
-        self.mv_matrix.load_identity()
-        self.mv_matrix.rotate_2d(
-            2 * math.pi * self.rotation[1] / 360, 2 * math.pi * self.rotation[0] / 360
-        )
-        self.mv_matrix.translate(
-            -self.position[0], -self.position[1], -self.position[2]
-        )
+        self.mv_matrix = Matrix.translate(-self.position) @ self.r_matrix
 
         # modelviewprojection matrix
 
-        mvp_matrix = self.mv_matrix * self.p_matrix
+        mvp_matrix = self.mv_matrix @ self.p_matrix
 
         self.shader["matrix"] = mvp_matrix
         self.shader["camera"] = self.position

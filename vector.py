@@ -20,8 +20,14 @@ class Vector:
     def __truediv__(self, other):
         return Vector(*(a / other for a in self))
 
+    def __neg__(self):
+        return -1 * self
+
     def mag(self):
         return math.sqrt(self.x ** 2 + self.y ** 2 + self.z ** 2)
+
+    def unit(self):
+        return self / self.mag()
 
     def cross(self, other):
         return Vector(*
@@ -37,6 +43,9 @@ class Vector:
 
     def __iter__(self):
         return iter(self._data)
+
+    def __len__(self):
+        return len(self._data)
 
     @property
     def x(self):

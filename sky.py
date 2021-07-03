@@ -3,6 +3,7 @@ import math
 from texture_manager import TextureManager
 from scene import Scene, Quad
 from shader import Shader
+from vector import Vector
 from matrix import Matrix
 import sun
 
@@ -29,12 +30,10 @@ class Sky:
         self.shader["rotation_matrix"] = camera.r_matrix
         self.shader["projection_matrix"] = camera.p_matrix
 
-        matrix = Matrix()
-        matrix.load_identity()
-
-        # TODO: This is totally inaccurate, but gives the correct effect.
-        matrix.rotate(2 * math.pi * sun.time_of_day(utctime) / (24 * 3600), 0.0, 1.0, 0.0)
-        matrix.rotate(math.pi/2 - LATITUDE, 0.1, 0.0, 0.0)
+        matrix = (
+            # TODO: This is totally inaccurate, but gives the correct effect.
+            Matrix.rotate(2 * math.pi * sun.time_of_day(utctime) / (24 * 3600), Vector(0.0, 1.0, 0.0)) @
+            Matrix.rotate(math.pi/2 - LATITUDE, Vector(0.1, 0.0, 0.0)))
 
         self.shader["celestial_matrix"] = matrix
         self.shader["sun_position"] = self.sun_position(utctime)

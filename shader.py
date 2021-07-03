@@ -71,10 +71,10 @@ class Shader:
         location = self.find_uniform(key)
         if isinstance(value, Matrix):
             gl.glUniformMatrix4fv(
-                location, 1, gl.GL_FALSE, (gl.GLfloat * 16)(*sum(value.data, []))
+                location, 1, gl.GL_FALSE, (gl.GLfloat * 16)(*value)
             )
         elif isinstance(value, Vector):
-            gl.glUniform3f(location, value.x, value.y, value.z)
+            gl.glUniform3f(location, *value)
         elif isinstance(value, float):
             gl.glUniform1f(location, gl.GLfloat(value))
         else:
