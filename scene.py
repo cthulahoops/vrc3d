@@ -5,10 +5,8 @@ from vector import Vector
 
 
 class Scene:
-    def __init__(self, texture_manager=None, max_vertices=500_000):
+    def __init__(self, max_vertices=500_000):
         self.entities = {}
-
-        self.texture_manager = texture_manager
 
         self.data_size = 0
         self.buffer_size = 0
@@ -70,9 +68,6 @@ class Scene:
 
     def draw(self, shader):
         with self.vao:
-            if self.texture_manager:
-                gl.glBindTexture(gl.GL_TEXTURE_2D_ARRAY, self.texture_manager.texture_array)
-                shader["texture_array_sampler"] = 1
             gl.glDrawArrays(gl.GL_QUADS, 0, self.data_size)
 
 

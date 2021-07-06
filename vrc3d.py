@@ -23,7 +23,7 @@ from virtualrc import WALL_COLORS, VirtualRc, PHOTOS
 
 
 class World:
-    def __init__(self, entity_queue, avatar_update_queue, speed=None, show_grid=False):
+    def __init__(self, entity_queue, avatar_update_queue, speed=None, show_grid=False, show_atmosphere=True):
         self.avatar_update_queue = avatar_update_queue
 
         self.window = pyglet.window.Window(caption="VRC3D", resizable=True, fullscreen=False)
@@ -40,8 +40,8 @@ class World:
         self.window.event(self.on_resize)
         pyglet.clock.schedule(self.update)
 
-        gl.glActiveTexture(gl.GL_TEXTURE0)
-        gl.glActiveTexture(gl.GL_TEXTURE1)
+ #       gl.glActiveTexture(gl.GL_TEXTURE0)
+        gl.glActiveTexture(gl.GL_TEXTURE2)
 
         self.camera = Camera(
             self.window.width,
@@ -56,7 +56,7 @@ class World:
         # self.active_color = 0
 
         self.virtual_rc = VirtualRc(self.camera, entity_queue)
-        self.sky = Sky(show_grid)
+        self.sky = Sky(show_grid, show_atmosphere)
 
         self.t0 = time.time()
         self.speed = speed
@@ -222,7 +222,7 @@ def main(args):
         async_thread.start()
 
     try:
-        World(entity_queue, avatar_update_queue, speed=args.speed, show_grid=args.grid)
+        World(entity_queue, avatar_update_queue, speed=args.speed, show_grid=args.grid, show_atmosphere=args.atmosphere)
         pyglet.app.run()
     finally:
         if args.connect:
@@ -233,6 +233,7 @@ def main(args):
 if __name__ == "__main__":
     argument_parser = argparse.ArgumentParser("Virtual RC 3D")
     argument_parser.add_argument("--no-connect", action="store_false", dest="connect")
+    argument_parser.add_argument("--no-atmosphere", action="store_false", dest="atmosphere")
     argument_parser.add_argument("--grid", action="store_true")
     argument_parser.add_argument("--speed", type=int)
 

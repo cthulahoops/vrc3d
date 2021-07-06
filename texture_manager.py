@@ -40,6 +40,9 @@ class TextureManager:
 
     #   pass
 
+    def index(self, texture):
+        return self.textures.index(texture)
+
     def add_texture(self, texture, texture_image=None):
         if not texture in self.textures:
             self.textures.append(texture)
@@ -64,3 +67,6 @@ class TextureManager:
                 texture_image.get_data("RGBA", texture_image.width * 4),
             )
             self.generate_mipmaps()
+
+    def bind(self):
+        gl.glBindTexture(gl.GL_TEXTURE_2D_ARRAY, self.texture_array)

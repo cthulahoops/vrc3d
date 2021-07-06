@@ -1,6 +1,8 @@
 import queue
 import pyglet
 
+from pyglet import gl
+
 from vector import Vector
 from scene import Scene, tex_coords, Cube, Mesh
 from texture_manager import TextureManager
@@ -21,8 +23,8 @@ WALL_COLORS = list(COLORS.keys())
 PHOTOS = {}
 
 
-def floor(scene):
-    texture_index = scene.texture_manager.textures.index("grid")
+def floor(textures):
+    texture_index = textures.index("grid")
 
     x0, x1 = (0.5, 1000.5)
     y0, y1 = (0.5, 1000.5)
@@ -75,7 +77,7 @@ class VirtualRc:
         self.shader = Shader("world")
         self.shader.use()
 
-        texture_manager = TextureManager(128, 128, 8)
+        self.building_textures = TextureManager(128, 128, 8)
         for name in [
             "empty",
             "audio_block",
@@ -86,14 +88,14 @@ class VirtualRc:
             "note",
             "zoom",
         ]:
-            texture_manager.add_texture(name)
+            self.building_textures.add_texture(name)
 
-        self.building = Scene(texture_manager)
-        self.building.add_cube("floor", floor(self.building))
+        self.building = Scene()
+        self.building.add_cube("floor", floor(self.building_textures))
 
-        texture_manager = TextureManager(150, 150, 50)
+        self.avatar_textures = TextureManager(150, 150, 50)
 
-        self.avatars = Scene(texture_manager, max_vertices=10_000)
+        self.avatars = Scene(max_vertices=10_000)
         self.camera = camera
 
     def draw(self, sun_position):
@@ -102,8 +104,15 @@ class VirtualRc:
         self.shader["matrix"] = self.camera.mvp_matrix
         self.shader["camera"] = self.camera.position
 
+        gl.glActiveTexture(gl.GL_TEXTURE0)
+        self.building_textures.bind()
+        self.shader["texture_array_sampler"] = 0
         self.shader["tile_texture"] = 1
         self.building.draw(self.shader)
+
+        gl.glActiveTexture(gl.GL_TEXTURE0)
+        self.avatar_textures.bind()
+        self.shader["texture_array_sampler"] = 0
         self.shader["tile_texture"] = 0
         self.avatars.draw(self.shader)
 
@@ -139,20 +148,20 @@ class VirtualRc:
             y0, y1 = (-1.0, 1.0)
 
             try:
-                self.avatars.texture_manager.add_texture(entity_id, PHOTOS[entity_id])
-                texture_index = self.avatars.texture_manager.textures.index(entity_id)
+                self.avatar_textures.add_texture(entity_id, PHOTOS[entity_id])
+                texture_index = self.avatar_textures.index(entity_id)
             except pyglet.gl.lib.GLException:
                 return None
         elif entity_type == "ZoomLink":
-            texture_index = self.building.texture_manager.textures.index("zoom")
+            texture_index = self.building_textures.index("zoom")
         elif entity_type == "Link":
-            texture_index = self.building.texture_manager.textures.index("link")
+            texture_index = self.building_textures.index("link")
         elif entity_type == "AudioBlock":
-            texture_index = self.building.texture_manager.textures.index("audio_block")
+            texture_index = self.building_textures.index("audio_block")
         elif entity_type == "RC::Calendar":
-            texture_index = self.building.texture_manager.textures.index("calendar")
+            texture_index = self.building_textures.index("calendar")
         elif entity["type"] == "AudioRoom":
-            texture_index = self.building.texture_manager.textures.index("microphone")
+            texture_index = self.building_textures.index("microphone")
 
             x0, x1 = (0.0, entity["width"])
             y0, y1 = (0.0, entity["height"])
