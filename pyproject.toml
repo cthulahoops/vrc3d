@@ -9,6 +9,7 @@ python = "^3.8"
 pyglet = "^1.5.18"
 rctogether = "^0.3.2"
 aiohttp = "^3.7.4"
+skyfield = "^1.39"
 
 [tool.poetry.dev-dependencies]
 black = "^21.6b0"

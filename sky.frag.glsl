@@ -8,8 +8,11 @@ uniform sampler2DArray texture_array_sampler;
 
 uniform mat4 celestial_matrix;
 uniform vec3 sun_position;
+uniform vec3 moon_position;
 uniform float current_time;
 uniform bool show_grid;
+
+const float moon_radius = 0.0187;
 
 
 #define PI 3.1415926535
@@ -150,9 +153,7 @@ void main(void) {
     vec2 angular_position = angular_position(celestial_position);
     vec4 starmap_color = texture(texture_array_sampler, vec3(angular_position.x / 360.0, (90.0 + angular_position.y) / 180.0, 0));
 
-    vec3 moon_position = normalize(vec3(-0.7, 0.2, 0.0));
     float moon_distance = sqrt(1.0 - dot(normal_position, moon_position));
-    float moon_radius = 0.025;
 
     vec3 background = vec3(0.0);
     if (moon_distance < moon_radius) {
@@ -160,8 +161,8 @@ void main(void) {
         vec3 moon_point = normal_position * (1.0 - moon_height);
         vec3 moon_normal = normalize(moon_point - moon_position);
 
-        background += clamp(4.0 * dot(moon_normal, sun_position) * moon_height / moon_radius, 0, 0.9);
-        // moon += moon_normal;
+        background += clamp(4.0 * dot(moon_normal, sun_position), 0.0, 1.0);
+        background += vec3(0.04);
         // background += moon_height / moon_radius;
     } else {
         background += 0.7 * starmap_color.rgb;
@@ -179,9 +180,9 @@ void main(void) {
         21e-6,                          // Mie scattering coefficient
         8e3,                            // Rayleigh scale height
         1.2e3,                          // Mie scale height
-        0.998                           // Mie preferred scattering direction
+        0.98                           // Mie preferred scattering direction
     );
-    atmosphere_color = 1.0 - exp(-1.0 * max(atmosphere_color, background));
+    atmosphere_color = 1.0 - exp(-1.0 * max(background, atmosphere_color));
     fragment_color = atmosphere_color; // mix(sky2, sky1, normal_position.y);
 //    fragment_color = vec3(azimuth / 360.0);
 

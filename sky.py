@@ -41,5 +41,6 @@ class Sky:
 
         self.shader["celestial_matrix"] = matrix
         self.shader["sun_position"] = self.sun_position(utctime)
+        self.shader["moon_position"] = sun.moon_position(LONGITUDE, LATITUDE, utctime)
         self.shader["show_grid"] = self.show_grid
         self.scene.draw(self.shader)
