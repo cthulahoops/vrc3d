@@ -37,6 +37,7 @@ class World:
         self.window.event(self.on_draw)
         self.window.event(self.on_mouse_motion)
         self.window.event(self.on_key_press)
+        self.window.event(self.on_resize)
         pyglet.clock.schedule(self.update)
 
         gl.glActiveTexture(gl.GL_TEXTURE0)
@@ -59,6 +60,9 @@ class World:
 
         self.t0 = time.time()
         self.speed = speed
+
+    def on_resize(self, width, height):
+        self.camera.resize(width, height)
 
     def on_key_press(self, KEY, MOD):
         if KEY == window.key.ESCAPE:
