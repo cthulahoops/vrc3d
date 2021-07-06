@@ -145,16 +145,28 @@ void main(void) {
     }
 
     vec3 normal_sun_position = normalize(sun_position);
-    float sun = 1.0 - smoothstep(0.01, 0.020, distance(normal_position, normal_sun_position));
-
-    vec3 sky1 = vec3(0.29, 0.74, 0.98);
-    vec3 sky2 = vec3(1.0, 1.0, 1.0);
 
     vec4 celestial_position = celestial_matrix * vec4(normal_position, 1.0);
-
     vec2 angular_position = angular_position(celestial_position);
-
     vec4 starmap_color = texture(texture_array_sampler, vec3(angular_position.x / 360.0, (90.0 + angular_position.y) / 180.0, 0));
+
+    vec3 moon_position = normalize(vec3(-0.7, 0.2, 0.0));
+    float moon_distance = sqrt(1.0 - dot(normal_position, moon_position));
+    float moon_radius = 0.025;
+
+    vec3 background = vec3(0.0);
+    if (moon_distance < moon_radius) {
+        float moon_height = sqrt(moon_radius * moon_radius - moon_distance * moon_distance);
+        vec3 moon_point = normal_position * (1.0 - moon_height);
+        vec3 moon_normal = normalize(moon_point - moon_position);
+
+        background += clamp(4.0 * dot(moon_normal, sun_position) * moon_height / moon_radius, 0, 0.9);
+        // moon += moon_normal;
+        // background += moon_height / moon_radius;
+    } else {
+        background += 0.7 * starmap_color.rgb;
+    }
+
 
     vec3 atmosphere_color = atmosphere(
         normal_position,                // normalized ray direction
@@ -169,7 +181,7 @@ void main(void) {
         1.2e3,                          // Mie scale height
         0.998                           // Mie preferred scattering direction
     );
-    atmosphere_color = 1.0 - exp(-1.0 * max(atmosphere_color, 0.7 * starmap_color.rgb));
+    atmosphere_color = 1.0 - exp(-1.0 * max(atmosphere_color, background));
     fragment_color = atmosphere_color; // mix(sky2, sky1, normal_position.y);
 //    fragment_color = vec3(azimuth / 360.0);
 
