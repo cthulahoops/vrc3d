@@ -43,6 +43,7 @@ class Sky:
         # TODO: This is totally inaccurate, but gives the correct effect.
         rotation_matrix = Matrix.rotate(2 * math.pi * sun.time_of_day(utctime) / (24 * 3600), Vector(0.0, 1.0, 0.0))
 
+        moon_matrix, moon_position = sun.moon_position(LONGITUDE, LATITUDE, utctime)
         matrix = declination_matrix @ rotation_matrix
 
         gl.glActiveTexture(gl.GL_TEXTURE0)
@@ -55,7 +56,8 @@ class Sky:
 
         self.shader["celestial_matrix"] = matrix
         self.shader["sun_position"] = self.sun_position(utctime)
-        self.shader["moon_position"] = sun.moon_position(LONGITUDE, LATITUDE, utctime)
+        self.shader["moon_position"] = moon_position
+        self.shader["moon_matrix"] = moon_matrix
         self.shader["show_grid"] = self.show_grid
         self.shader["show_atmosphere"] = self.show_atmosphere
         self.scene.draw(self.shader)

@@ -3,6 +3,7 @@ from math import asin, acos, sin, cos, pi, radians, degrees
 from collections import namedtuple
 
 from vector import Vector
+from matrix import Matrix
 from skyfield import api
 
 AngularPosition = namedtuple("AngularPosition", ("azimuth", "elevation"))
@@ -80,7 +81,9 @@ def moon_position(longitude, latitude, dt):
     dt = dt.replace(tzinfo=api.utc)
     t = TS.from_datetime(dt)
     (alt, az, _dis) = BROOKLYN.at(t).observe(MOON).apparent().altaz()
-    return to_cartesian(AngularPosition(az.radians, alt.radians))
+    return Matrix.rotate_2d(az.radians, alt.radians), to_cartesian(AngularPosition(az.radians, alt.radians))
+
+
 
 # return to_cartesian(angular_position(longitude, latitude, dt))
 

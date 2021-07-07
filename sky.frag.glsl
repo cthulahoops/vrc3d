@@ -8,6 +8,7 @@ uniform sampler2DArray stars_array_sampler;
 uniform sampler2DArray moon_array_sampler;
 
 uniform mat4 celestial_matrix;
+uniform mat4 moon_matrix;
 uniform vec3 sun_position;
 uniform vec3 moon_position;
 uniform float current_time;
@@ -126,7 +127,7 @@ vec3 atmosphere(vec3 r, vec3 r0, vec3 pSun, float iSun, float rPlanet, float rAt
     return iSun * (3.0 * pRlh * kRlh * totalRlh + pMie * kMie * totalMie);
 }
 
-vec2 angular_position(vec3 position) {
+vec2 angular_position(vec4 position) {
     float altitude = 360.0 * atan(position.y / length(position.xz)) / (2.0 * PI);
     float azimuth = 90.0 + 360.0 * atan(position.z / position.x) / (2.0 * PI);
     if (position.x < 0) {
@@ -136,13 +137,13 @@ vec2 angular_position(vec3 position) {
     return vec2(azimuth, altitude);
 }
 
-float grid(vec3 position) {
+float grid(vec4 position) {
     vec2 ap = angular_position(position);
     return 1.0 - step(0.1, mod(ap.y, 15)) * step(0.1, mod(ap.x, 15));
 }
 
-vec3 spherical_texture_coords(vec3 position) {
-    vec2 ap = angular_position(position.xyz);
+vec3 spherical_texture_coords(vec4 position) {
+    vec2 ap = angular_position(position);
     return vec3(ap.x / 360.0, (90 + ap.y) / 180.0, 0.0);
 }
 
@@ -158,7 +159,7 @@ void main(void) {
     vec3 normal_sun_position = normalize(sun_position);
 
     vec4 celestial_position = celestial_matrix * vec4(normal_position, 1.0);
-    vec4 starmap_color = texture(stars_array_sampler, spherical_texture_coords(celestial_position.xyz));
+    vec4 starmap_color = texture(stars_array_sampler, spherical_texture_coords(celestial_position));
 
     float moon_distance = sqrt(1.0 - dot(normal_position, moon_position));
 
@@ -168,7 +169,8 @@ void main(void) {
         vec3 moon_point = normal_position * (1.0 - moon_height);
         vec3 moon_normal = normalize(moon_point - moon_position);
 
-        vec4 moon_albedo = texture(moon_array_sampler, spherical_texture_coords(moon_normal));
+        vec4 moon_surface_pos = moon_matrix * vec4(moon_normal, 1.0);
+        vec4 moon_albedo = texture(moon_array_sampler, vec3(-1.0, 1.0, 1.0) * spherical_texture_coords(moon_surface_pos));
         background += moon_albedo.rgb * (clamp(4.0 * dot(moon_normal, sun_position), 0.0, 1.0) + vec3(0.04));
         // background += moon_height / moon_radius;
     } else {
@@ -187,7 +189,7 @@ void main(void) {
         21e-6,                          // Mie scattering coefficient
         8e3,                            // Rayleigh scale height
         1.2e3,                          // Mie scale height
-        0.98                           // Mie preferred scattering direction
+        0.95                           // Mie preferred scattering direction
     );
     if (show_atmosphere) {
         atmosphere_color = 1.0 - exp(-1.0 * max(background, atmosphere_color));
@@ -200,6 +202,6 @@ void main(void) {
 
     // fragment_color += vec3(sun);
     if (show_grid) {
-        fragment_color += vec3(0.3, 0.3, 0.3) * grid(celestial_position.xyz);
+        fragment_color += vec3(0.3, 0.3, 0.3) * grid(celestial_position);
     }
 }
