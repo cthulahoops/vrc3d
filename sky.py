@@ -7,12 +7,9 @@ from vector import Vector
 from matrix import Matrix
 import sun
 
-from pyglet import gl
-
 # Bridge St
 LONGITUDE = sun.radians(-73.985)
 LATITUDE = sun.radians(40.6913)
-
 
 class Sky:
     def __init__(self, show_grid, show_atmosphere):
@@ -46,12 +43,10 @@ class Sky:
         moon_matrix, moon_position = sun.moon_position(LONGITUDE, LATITUDE, utctime)
         matrix = declination_matrix @ rotation_matrix
 
-        gl.glActiveTexture(gl.GL_TEXTURE0)
-        self.starmap_texture.bind()
+        self.starmap_texture.activate(0)
         self.shader["stars_array_sampler"] = 0
 
-        gl.glActiveTexture(gl.GL_TEXTURE1)
-        self.moon_texture.bind()
+        self.moon_texture.activate(1)
         self.shader["moon_array_sampler"] = 1
 
         self.shader["celestial_matrix"] = matrix

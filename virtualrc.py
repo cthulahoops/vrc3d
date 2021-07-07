@@ -1,8 +1,6 @@
 import queue
 import pyglet
 
-from pyglet import gl
-
 from vector import Vector
 from scene import Scene, tex_coords, Cube, Mesh
 from texture_manager import TextureManager
@@ -104,14 +102,12 @@ class VirtualRc:
         self.shader["matrix"] = self.camera.mvp_matrix
         self.shader["camera"] = self.camera.position
 
-        gl.glActiveTexture(gl.GL_TEXTURE0)
-        self.building_textures.bind()
+        self.building_textures.activate(0)
         self.shader["texture_array_sampler"] = 0
         self.shader["tile_texture"] = 1
         self.building.draw(self.shader)
 
-        gl.glActiveTexture(gl.GL_TEXTURE0)
-        self.avatar_textures.bind()
+        self.avatar_textures.activate(0)
         self.shader["texture_array_sampler"] = 0
         self.shader["tile_texture"] = 0
         self.avatars.draw(self.shader)

@@ -1,7 +1,5 @@
 import io
-import ctypes
 import pyglet
-
 import pyglet.gl as gl
 
 
@@ -12,7 +10,8 @@ class TextureManager:
 
         self.max_textures = max_textures
 
-        self.textures = []
+        self.next_index = 0
+        self.textures = {}
 
         self.texture_array = gl.GLuint(0)
         gl.glGenTextures(1, self.texture_array)
@@ -35,30 +34,26 @@ class TextureManager:
             None,
         )
 
-    def generate_mipmaps(self):
-        gl.glGenerateMipmap(gl.GL_TEXTURE_2D_ARRAY)
-
-    #   pass
-
     def index(self, texture):
-        return self.textures.index(texture)
+        return self.textures[texture]
 
     def add_texture(self, texture, texture_image=None):
         if not texture in self.textures:
-            self.textures.append(texture)
+            self.textures[texture] = index = self.next_index
+            self.next_index += 1
 
             if texture_image:
                 texture_image = io.BytesIO(texture_image)
 
             texture_image = pyglet.image.load(f"textures/{texture}.png", file=texture_image).get_image_data()
 
-            gl.glBindTexture(gl.GL_TEXTURE_2D_ARRAY, self.texture_array)
+            self.bind()
             gl.glTexSubImage3D(
                 gl.GL_TEXTURE_2D_ARRAY,
                 0,
                 0,
                 0,
-                self.textures.index(texture),
+                index,
                 self.texture_width,
                 self.texture_height,
                 1,
@@ -66,7 +61,11 @@ class TextureManager:
                 gl.GL_UNSIGNED_BYTE,
                 texture_image.get_data("RGBA", texture_image.width * 4),
             )
-            self.generate_mipmaps()
+            gl.glGenerateMipmap(gl.GL_TEXTURE_2D_ARRAY)
 
     def bind(self):
         gl.glBindTexture(gl.GL_TEXTURE_2D_ARRAY, self.texture_array)
+
+    def activate(self, sampler_id):
+        gl.glActiveTexture(gl.GL_TEXTURE0 + sampler_id)
+        self.bind()
