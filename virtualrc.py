@@ -92,6 +92,7 @@ class VirtualRc:
         self.building.add_cube("floor", floor(self.building_textures))
 
         self.avatar_textures = TextureCube(150, 150, 50)
+        self.avatar_textures.clamp_border(Vector(0.8, 0.8, 0.8))
 
         self.avatars = Scene(max_vertices=10_000)
         self.camera = camera
@@ -104,12 +105,10 @@ class VirtualRc:
 
         self.building_textures.activate(0)
         self.shader["texture_array_sampler"] = 0
-        self.shader["tile_texture"] = 1
         self.building.draw(self.shader)
 
         self.avatar_textures.activate(0)
         self.shader["texture_array_sampler"] = 0
-        self.shader["tile_texture"] = 0
         self.avatars.draw(self.shader)
 
     def update(self):

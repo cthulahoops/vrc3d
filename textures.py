@@ -71,6 +71,13 @@ class TextureCube:
             None,
         )
 
+    def clamp_border(self, color):
+        self.bind()
+
+        gl.glTexParameteri(gl.GL_TEXTURE_2D_ARRAY, gl.GL_TEXTURE_WRAP_S, gl.GL_CLAMP_TO_BORDER)
+        gl.glTexParameteri(gl.GL_TEXTURE_2D_ARRAY, gl.GL_TEXTURE_WRAP_T, gl.GL_CLAMP_TO_BORDER)
+        gl.glTexParameterfv(gl.GL_TEXTURE_2D_ARRAY, gl.GL_TEXTURE_BORDER_COLOR, (gl.GLfloat * 3)(*color))
+
     def index(self, texture):
         return self.textures[texture]
 
