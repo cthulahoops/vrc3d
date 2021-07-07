@@ -23,7 +23,7 @@ from virtualrc import WALL_COLORS, VirtualRc, PHOTOS
 
 
 class World:
-    def __init__(self, entity_queue, avatar_update_queue, speed=None, show_grid=False, show_atmosphere=True):
+    def __init__(self, entity_queue, avatar_update_queue, offset=0, speed=None, show_grid=False, show_atmosphere=True):
         self.avatar_update_queue = avatar_update_queue
 
         self.window = pyglet.window.Window(caption="VRC3D", resizable=True, fullscreen=False)
@@ -58,6 +58,7 @@ class World:
         self.virtual_rc = VirtualRc(self.camera, entity_queue)
         self.sky = Sky(show_grid, show_atmosphere)
 
+        self.offset = offset
         self.t0 = time.time()
         self.speed = speed
 
@@ -105,8 +106,12 @@ class World:
         self.window.clear()
 
         utctime = datetime.datetime.utcnow()
+        if self.offset:
+            utctime += datetime.timedelta(seconds=self.offset)
         if self.speed:
             utctime += datetime.timedelta(seconds=self.speed * (time.time() - self.t0))
+
+#        print(utctime)
 
         sun_position = self.sky.sun_position(utctime)
 
@@ -222,7 +227,7 @@ def main(args):
         async_thread.start()
 
     try:
-        World(entity_queue, avatar_update_queue, speed=args.speed, show_grid=args.grid, show_atmosphere=args.atmosphere)
+        World(entity_queue, avatar_update_queue, offset=args.offset, speed=args.speed, show_grid=args.grid, show_atmosphere=args.atmosphere)
         pyglet.app.run()
     finally:
         if args.connect:
@@ -236,5 +241,6 @@ if __name__ == "__main__":
     argument_parser.add_argument("--no-atmosphere", action="store_false", dest="atmosphere")
     argument_parser.add_argument("--grid", action="store_true")
     argument_parser.add_argument("--speed", type=int)
+    argument_parser.add_argument("--offset", type=int, default=0)
 
     main(argument_parser.parse_args())
