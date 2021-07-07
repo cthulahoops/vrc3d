@@ -4,8 +4,8 @@ out vec3 fragment_color;
 
 in vec4 position;
 
-uniform sampler2DArray stars_array_sampler;
-uniform sampler2DArray moon_array_sampler;
+uniform sampler2D stars_array_sampler;
+uniform sampler2D moon_array_sampler;
 
 uniform mat4 celestial_matrix;
 uniform mat4 moon_matrix;
@@ -142,9 +142,9 @@ float grid(vec4 position) {
     return 1.0 - step(0.1, mod(ap.y, 15)) * step(0.1, mod(ap.x, 15));
 }
 
-vec3 spherical_texture_coords(vec4 position) {
+vec2 spherical_texture_coords(vec4 position) {
     vec2 ap = angular_position(position);
-    return vec3(ap.x / 360.0, (90 + ap.y) / 180.0, 0.0);
+    return vec2(ap.x / 360.0, (90 + ap.y) / 180.0);
 }
 
 void main(void) {
@@ -170,7 +170,9 @@ void main(void) {
         vec3 moon_normal = normalize(moon_point - moon_position);
 
         vec4 moon_surface_pos = moon_matrix * vec4(moon_normal, 1.0);
-        vec4 moon_albedo = texture(moon_array_sampler, vec3(-1.0, 1.0, 1.0) * spherical_texture_coords(moon_surface_pos));
+        vec4 moon_albedo = texture(
+                moon_array_sampler,
+                vec2(-1.0, 1.0) * spherical_texture_coords(moon_surface_pos));
         background += moon_albedo.rgb * (clamp(4.0 * dot(moon_normal, sun_position), 0.0, 1.0) + vec3(0.04));
         // background += moon_height / moon_radius;
     } else {

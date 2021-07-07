@@ -1,6 +1,6 @@
 import math
 
-from textures import TextureCube
+from textures import Texture
 from scene import Scene, Quad
 from shader import Shader
 from vector import Vector
@@ -13,11 +13,8 @@ LATITUDE = sun.radians(40.6913)
 
 class Sky:
     def __init__(self, show_grid, show_atmosphere):
-        self.starmap_texture = TextureCube(4096, 2048, 1)
-        self.starmap_texture.add_texture("starmap")
-
-        self.moon_texture = TextureCube(1024, 512, 1)
-        self.moon_texture.add_texture("moon")
+        self.starmap_texture = Texture("starmap")
+        self.moon_texture = Texture("moon")
 
         self.show_grid = show_grid
         self.show_atmosphere = show_atmosphere
