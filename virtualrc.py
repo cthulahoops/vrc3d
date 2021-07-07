@@ -3,7 +3,7 @@ import pyglet
 
 from vector import Vector
 from scene import Scene, tex_coords, Cube, Mesh
-from texture_manager import TextureManager
+from textures import TextureCube
 from shader import Shader
 
 COLORS = {
@@ -75,7 +75,7 @@ class VirtualRc:
         self.shader = Shader("world")
         self.shader.use()
 
-        self.building_textures = TextureManager(128, 128, 8)
+        self.building_textures = TextureCube(128, 128, 8)
         for name in [
             "empty",
             "audio_block",
@@ -91,7 +91,7 @@ class VirtualRc:
         self.building = Scene()
         self.building.add_cube("floor", floor(self.building_textures))
 
-        self.avatar_textures = TextureManager(150, 150, 50)
+        self.avatar_textures = TextureCube(150, 150, 50)
 
         self.avatars = Scene(max_vertices=10_000)
         self.camera = camera
