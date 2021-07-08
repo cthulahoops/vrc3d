@@ -18,7 +18,7 @@ import pyglet
 from camera import Camera
 from vector import Vector
 import photos
-from sky import Sky
+from sky import Sky, astronomy
 from virtualrc import WALL_COLORS, VirtualRc, PHOTOS
 
 
@@ -113,11 +113,11 @@ class World:
 
 #        print(utctime)
 
-        sun_position = self.sky.sun_position(utctime)
+        astro = astronomy(utctime)
 
         self.camera.compute_matrices()
-        self.virtual_rc.draw(sun_position)
-        self.sky.draw(self.camera, utctime)
+        self.virtual_rc.draw(astro.sun_position)
+        self.sky.draw(self.camera, astro)
 
     def update(self, dt):
         self.virtual_rc.update()
