@@ -173,7 +173,7 @@ class Cube(Mesh):
         colors = color_to_rgb(color or "#114433") * 4
 
         if not texture:
-            texture = tex_coords(0, 0, 1, 1, -1)
+            texture = tex_coords(0, 1, 0, 1, -1)
 
         vertices = [
             (b.x, a.y, a.z, a.x, a.y, a.z, a.x, b.y, a.z, b.x, b.y, a.z),  # Back
