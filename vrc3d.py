@@ -146,7 +146,7 @@ class World:
 class DeduplicatingQueue(Queue):
     def __init__(self):
         super().__init__()
-        self.last_item = None
+        self.last_item = object()
 
     def put(self, item, block=True, timeout=None):
         if item != self.last_item:
