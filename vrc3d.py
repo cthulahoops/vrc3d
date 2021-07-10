@@ -39,9 +39,7 @@ class World:
         self.window.event(self.on_key_press)
         self.window.event(self.on_resize)
         pyglet.clock.schedule(self.update)
-
- #       gl.glActiveTexture(gl.GL_TEXTURE0)
-        gl.glActiveTexture(gl.GL_TEXTURE2)
+        pyglet.clock.schedule_interval(self.update_astro, 0.5)
 
         self.camera = Camera(
             self.window.width,
@@ -61,6 +59,8 @@ class World:
         self.offset = offset
         self.t0 = time.time()
         self.speed = speed
+
+        self.astro = None
 
     def on_resize(self, width, height):
         self.camera.resize(width, height)
@@ -102,22 +102,21 @@ class World:
         if self.exclusive_mouse:
             self.camera.update_mouse(Vector(dy / 6, dx / 6))
 
-    def on_draw(self):
-        self.window.clear()
-
+    def update_astro(self, dt):
         utctime = datetime.datetime.utcnow()
         if self.offset:
             utctime += datetime.timedelta(seconds=self.offset)
         if self.speed:
             utctime += datetime.timedelta(seconds=self.speed * (time.time() - self.t0))
 
-#        print(utctime)
+        self.astro = astronomy(utctime)
 
-        astro = astronomy(utctime)
+    def on_draw(self):
+        self.window.clear()
 
         self.camera.compute_matrices()
-        self.virtual_rc.draw(astro.sun_position)
-        self.sky.draw(self.camera, astro)
+        self.virtual_rc.draw(self.astro.sun_position)
+        self.sky.draw(self.camera, self.astro)
 
     def update(self, dt):
         self.virtual_rc.update()
