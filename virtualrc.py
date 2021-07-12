@@ -89,7 +89,7 @@ class VirtualRc:
             self.building_textures.add_texture(name)
 
         self.building = Scene()
-        self.building.add_cube("floor", floor(self.building_textures))
+        self.building.add_entity("floor", floor(self.building_textures))
 
         self.avatar_textures = TextureCube(150, 150, 50)
         self.avatar_textures.clamp_border(Vector(0.8, 0.8, 0.8))
@@ -131,7 +131,7 @@ class VirtualRc:
         mesh = get_mesh(entity_type, entity, texture)
 
         if mesh:
-            scene.add_cube(entity_id, mesh)
+            scene.add_entity(entity_id, mesh)
 
     def get_texture(self, entity_type, entity):
         x0, x1 = (0.0, 1.0)
@@ -168,8 +168,8 @@ class VirtualRc:
     def handle_entity(self, entity):
         if entity.get("deleted"):
             if entity["type"] == "Avatar":
-                self.avatars.delete_cube(entity["id"])
+                self.avatars.delete_entity(entity["id"])
             else:
-                self.building.delete_cube(entity["id"])
+                self.building.delete_entity(entity["id"])
         else:
             self.add_entity(entity)

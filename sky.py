@@ -52,7 +52,7 @@ class Sky:
         self.shader = Shader("sky")
 
         self.scene = Scene(max_vertices=13)
-        self.scene.add_cube(1, Quad())
+        self.scene.add_entity(1, Quad())
 
     def draw(self, camera, astro):
         self.shader.use()

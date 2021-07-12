@@ -20,11 +20,11 @@ class Scene:
 
             self.allocate_buffers(max_vertices)
 
-    def delete_cube(self, entity_id):
+    def delete_entity(self, entity_id):
         (offset, size) = self.entities[entity_id]
         self.buffers.tex_coords.write_slice(offset, [-2] * size)
 
-    def add_cube(self, entity_id, cube):
+    def add_entity(self, entity_id, cube):
         if entity_id in self.entities:
             (offset, size) = self.entities[entity_id]
 
