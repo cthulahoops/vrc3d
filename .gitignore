@@ -1,3 +1,5 @@
 config
 photos/*.png
 photos/*.jpeg
+vrc3d.egg-info
+de421.bsp
