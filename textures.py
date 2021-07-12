@@ -14,7 +14,7 @@ class Texture:
         self.height = texture_image.height
         image_data = texture_image.get_image_data()
 
-        self._id = gl.GLuint(0)
+        self._id = gl.GLuint()
         gl.glGenTextures(1, self._id)
         self.bind()
 
@@ -50,7 +50,7 @@ class TextureCube:
         self.next_index = 0
         self.textures = {}
 
-        self._id = gl.GLuint(0)
+        self._id = gl.GLuint()
         gl.glGenTextures(1, self._id)
 
         self.bind()

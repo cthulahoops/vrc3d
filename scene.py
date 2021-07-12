@@ -73,7 +73,7 @@ class Scene:
 
 class VertexArrayObject:
     def __init__(self):
-        self._id = gl.GLuint(0)
+        self._id = gl.GLuint()
         gl.glGenVertexArrays(1, ctypes.byref(self._id))
 
     def __enter__(self):
@@ -85,7 +85,7 @@ class VertexArrayObject:
 
 class VertexBufferObject:
     def __init__(self):
-        self._id = gl.GLuint(0)
+        self._id = gl.GLuint()
         gl.glGenBuffers(1, ctypes.byref(self._id))
 
     def __enter__(self):
