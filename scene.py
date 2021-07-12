@@ -200,20 +200,19 @@ class Cube(Mesh):
 
 
 class Quad:
-    def __init__(self):
-        depth = -1.0
+    def __init__(self, x0=-1, x1=1, y0=-1, y1=1, depth=-1):
         self.vertices = [
-            -1.0,
-            -1.0,
+            x0,
+            y0,
             depth,
-            -1.0,
-            1.0,
+            x0,
+            y1,
             depth,
-            1.0,
-            1.0,
+            x1,
+            y1,
             depth,
-            1.0,
-            -1.0,
+            x1,
+            y0,
             depth,
         ]
         self.normals = [0] * 12
