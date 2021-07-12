@@ -105,11 +105,11 @@ class VirtualRc:
 
         self.building_textures.activate(0)
         self.shader["texture_array_sampler"] = 0
-        self.building.draw(self.shader)
+        self.building.draw()
 
         self.avatar_textures.activate(0)
         self.shader["texture_array_sampler"] = 0
-        self.avatars.draw(self.shader)
+        self.avatars.draw()
 
     def update(self):
         try:

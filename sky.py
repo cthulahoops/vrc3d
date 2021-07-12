@@ -71,4 +71,4 @@ class Sky:
         self.shader["moon_matrix"] = astro.moon_matrix
         self.shader["show_grid"] = self.show_grid
         self.shader["show_atmosphere"] = self.show_atmosphere
-        self.scene.draw(self.shader)
+        self.scene.draw()

@@ -66,7 +66,7 @@ class Scene:
                 gl.glVertexAttribPointer(layout_offset, 3, gl.GL_FLOAT, gl.GL_FALSE, 0, 0)
                 gl.glEnableVertexAttribArray(layout_offset)
 
-    def draw(self, shader):
+    def draw(self):
         with self.vao:
             gl.glDrawArrays(gl.GL_QUADS, 0, self.data_size)
 
