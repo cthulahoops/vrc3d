@@ -15,8 +15,9 @@ LATITUDE = 39.6913
 
 TS = api.load.timescale()
 PLANETS = api.load("de421.bsp")
-SUN, EARTH, MOON = PLANETS['sun'], PLANETS['earth'], PLANETS['moon']
+SUN, EARTH, MOON = PLANETS["sun"], PLANETS["earth"], PLANETS["moon"]
 BROOKLYN = EARTH + api.wgs84.latlon(LATITUDE, LONGITUDE)
+
 
 def to_cartesian(alt, az, _distance=None):
     x = sin(az.radians) * cos(alt.radians)
@@ -25,7 +26,10 @@ def to_cartesian(alt, az, _distance=None):
 
     return Vector(x, y, z)
 
-Astronomy = namedtuple('Astronomy', ('sun_position', 'moon_matrix', 'moon_position', 'celestial_matrix'))
+
+AltAz = namedtuple("AltAz", ("alt", "az"))
+Astronomy = namedtuple("Astronomy", ("sun_altaz", "sun_position", "moon_matrix", "moon_position", "celestial_matrix"))
+
 
 def astronomy(utctime):
     t = TS.from_datetime(utctime.replace(tzinfo=api.utc))
@@ -38,8 +42,11 @@ def astronomy(utctime):
     (moon_alt, moon_az, _) = observer.observe(MOON).apparent().altaz()
     moon_matrix = Matrix.rotate_2d(moon_az.radians, moon_alt.radians)
     moon_position = to_cartesian(moon_alt, moon_az)
-    sun_position = to_cartesian(*observer.observe(SUN).apparent().altaz())
-    return Astronomy(sun_position, moon_matrix, moon_position, celestrial_matrix)
+    (sun_alt, sun_az, _) = observer.observe(SUN).apparent().altaz()
+    sun_altaz = AltAz(sun_alt, sun_az)
+    sun_position = to_cartesian(sun_alt, sun_az)
+    return Astronomy(sun_altaz, sun_position, moon_matrix, moon_position, celestrial_matrix)
+
 
 class Sky:
     def __init__(self, show_grid, show_atmosphere):

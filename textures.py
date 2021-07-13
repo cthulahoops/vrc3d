@@ -29,7 +29,7 @@ class Texture:
             0,
             gl.GL_RGBA,
             gl.GL_UNSIGNED_BYTE,
-            image_data.get_data("RGBA", self.width * 4)
+            image_data.get_data("RGBA", self.width * 4),
         )
         gl.glGenerateMipmap(gl.GL_TEXTURE_2D)
 

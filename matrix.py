@@ -137,6 +137,7 @@ class Matrix:
     @classmethod
     def orthographic(cls, left, right, bottom, top, near, far):
         scale = cls.scale(Vector(2.0 / (right - left), 2.0 / (top - bottom), 2.0 / (far - near)))
+
         translate = cls.translate(
             Vector(
                 -(right + left) / (right - left),

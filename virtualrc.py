@@ -28,8 +28,8 @@ def floor(textures):
     y0, y1 = (0.5, 1000.5)
 
     return Cube(
-        Vector(500, 0, 500),
-        Vector(1000, 0.0001, 1000),
+        Vector(500, -1, 500),
+        Vector(1000, 1, 1000),
         color="#eeeeee",
         texture=tex_coords(x0, x1, y0, y1, texture_index),
     )
@@ -97,18 +97,23 @@ class VirtualRc:
         self.avatars = Scene(max_vertices=10_000)
         self.camera = camera
 
-    def draw(self, sun_position):
+    def draw(self, sun_position, shadow_map):
         self.shader.use()
         self.shader["sun_position"] = sun_position
         self.shader["matrix"] = self.camera.mvp_matrix
         self.shader["camera"] = self.camera.position
+        self.shader["light_space_matrix"] = shadow_map.light_space_matrix
 
         self.building_textures.activate(0)
+        shadow_map.activate(1)
         self.shader["texture_array_sampler"] = 0
+        self.shader["shadow_map"] = 1
         self.building.draw()
 
         self.avatar_textures.activate(0)
+        shadow_map.activate(1)
         self.shader["texture_array_sampler"] = 0
+        self.shader["shadow_map"] = 1
         self.avatars.draw()
 
     def update(self):

@@ -19,6 +19,7 @@ from camera import Camera
 from vector import Vector
 import photos
 from sky import Sky, astronomy
+from shadows import ShadowMap
 from virtualrc import WALL_COLORS, VirtualRc, PHOTOS
 
 
@@ -33,6 +34,7 @@ class World:
         self.window.set_exclusive_mouse(self.exclusive_mouse)
 
         gl.glEnable(gl.GL_DEPTH_TEST)
+        gl.glEnable(gl.GL_CULL_FACE)
 
         self.window.event(self.on_draw)
         self.window.event(self.on_mouse_motion)
@@ -53,6 +55,7 @@ class World:
 
         # self.active_color = 0
 
+        self.shadow_map = ShadowMap()
         self.virtual_rc = VirtualRc(self.camera, entity_queue)
         self.sky = Sky(show_grid, show_atmosphere)
 
@@ -112,11 +115,16 @@ class World:
         self.astro = astronomy(utctime)
 
     def on_draw(self):
-        self.window.clear()
-
         self.camera.compute_matrices()
-        self.virtual_rc.draw(self.astro.sun_position)
+
+        self.shadow_map.render(self.camera, self.astro.sun_altaz, [self.virtual_rc.building, self.virtual_rc.avatars])
+
+        gl.glViewport(0, 0, self.window.width, self.window.height)
+        self.window.clear()
+        self.virtual_rc.draw(self.astro.sun_position, self.shadow_map)
         self.sky.draw(self.camera, self.astro)
+
+        self.shadow_map.shadow_quad.draw(self.shadow_map)
 
     def update(self, dt):
         self.virtual_rc.update()
@@ -226,7 +234,14 @@ def main(args):
         async_thread.start()
 
     try:
-        World(entity_queue, avatar_update_queue, offset=args.offset, speed=args.speed, show_grid=args.grid, show_atmosphere=args.atmosphere)
+        World(
+            entity_queue,
+            avatar_update_queue,
+            offset=args.offset,
+            speed=args.speed,
+            show_grid=args.grid,
+            show_atmosphere=args.atmosphere,
+        )
         pyglet.app.run()
     finally:
         if args.connect:
