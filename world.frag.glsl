@@ -45,23 +45,31 @@ void main(void) {
 		discard; // Deleted!
 	}
 
-	vec4 texture_color = interpolated_tex_coords.z >= 0 ? texture(texture_array_sampler, interpolated_tex_coords) : vec4(local_color, 1);
-
+	vec4 albedo = interpolated_tex_coords.z >= 0 ? texture(texture_array_sampler, interpolated_tex_coords) : vec4(local_color, 1);
 
 //	fragment_colour = texture_colour * interpolated_shading_value;
 //	if (texture_colour.a == 0.0) { // discard if texel's alpha component is 0 (texel is transparent)
 //		discard;
 //	}
 
-	float fog = clamp(1 - length(camera - interpolated_position) / 60, 0.5, 1);
+//	float fog = clamp(1 - length(camera - interpolated_position) / 60, 0.5, 1);
+
+	float specular_strength = 0.5;
+
+	vec3 sun_color = vec3(smoothstep(0, 0.1, sun_position.y), smoothstep(0, 0.2, sun_position.y), smoothstep(0, 0.3, sun_position.y)) * vec3(0.6, 0.6, 0.6);
+
+	vec3 view_dir = normalize(camera - interpolated_position);
+	vec3 reflect_dir = reflect(-sun_position, local_normal);
+
+	float spec = pow(max(dot(view_dir, reflect_dir), 0.0), 32);
+	vec3 specular = specular_strength * spec * sun_color;
 
 	vec3 light_direction = normalize(sun_position);
-	vec3 diffuse = 2.0 * vec3(0.3, 0.3, 0.25) * max(0, dot(local_normal, light_direction));
+	vec3 diffuse = sun_color * max(0, dot(local_normal, light_direction));
 	vec3 ambient = 0.5 * vec3(0.7, 0.7, 0.9);
-
 
 	float bias = max(0.008 * (1.0 - dot(local_normal, light_direction)), 0.00005);  
 	float shadow = compute_shadow(frag_pos_light_space, bias);
 
-	fragment_color = fog * ((1.0 - shadow) * diffuse + ambient) * texture_color.rgb + vec3(0.5, 0.5, 0.5) * (1 - fog);
+	fragment_color = ((1.0 - shadow) * (diffuse + specular) + ambient) * albedo.rgb;
 }

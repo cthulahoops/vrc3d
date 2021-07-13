@@ -9,6 +9,9 @@ from scene import Scene, Quad
 SHADOW_WIDTH = 2 * 1024
 SHADOW_HEIGHT = 2 * 1024
 
+SHADOW_DISTANCE = 10
+SHADOW_DEPTH = 30
+
 
 class ShadowQuad:
     def __init__(self):
@@ -65,8 +68,8 @@ class ShadowMap:
         self.light_space_matrix = None
 
     def render(self, camera, sun, meshes):
-        d = 10
-        ortho_matrix = Matrix.orthographic(-d, d, -d, d, -20, 20)
+        d = SHADOW_DISTANCE
+        ortho_matrix = Matrix.orthographic(-d, d, -d, d, -SHADOW_DEPTH, SHADOW_DEPTH)
         model_matrix = camera.translate
         rotate_matrix = Matrix.rotate(sun.az.radians, Vector(0, 1, 0)) @ Matrix.rotate(
             sun.alt.radians, Vector(-1, 0, 0)
