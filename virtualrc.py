@@ -64,7 +64,12 @@ def get_mesh(entity_type, entity, texture):
     if entity["type"] == "RC::Calendar":
         return Cube(position, Vector(0.6, 0.6, 0.6), texture=texture)
     if entity["type"] == "AudioRoom":
-        return Cube(position, Vector(entity["width"], 0.002, entity["height"]), texture=texture)
+        return Cube(
+            position,
+            Vector(entity["width"], 0.002, entity["height"]),
+            texture=texture,
+            offset=Vector(entity["width"] / 2 - 0.5, 0, entity["height"] / 2 - 0.5),
+        )
     return None
 
 
