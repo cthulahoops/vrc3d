@@ -124,8 +124,6 @@ class World:
         self.virtual_rc.draw(self.astro.sun_position, self.shadow_map)
         self.sky.draw(self.camera, self.astro)
 
-        self.shadow_map.shadow_quad.draw(self.shadow_map)
-
     def update(self, dt):
         self.virtual_rc.update()
 

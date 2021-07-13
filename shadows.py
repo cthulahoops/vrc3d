@@ -1,4 +1,3 @@
-import math
 import pyglet.gl as gl
 
 from vector import Vector
@@ -64,7 +63,6 @@ class ShadowMap:
 
         self.shader = Shader("shadows")
 
-        self.shadow_quad = ShadowQuad()
         self.light_space_matrix = None
 
     def render(self, camera, sun, meshes):
