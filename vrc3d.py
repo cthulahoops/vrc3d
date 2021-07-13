@@ -87,6 +87,14 @@ class World:
                     },
                 }
             )
+        elif KEY == window.key.LCTRL:
+            print("Bang!")
+            self.avatar_update_queue.put(
+                {
+                    "type": "rocket",
+                    "payload": self.avatar_position(),
+                }
+            )
         elif KEY == window.key.C:
             self.active_color += 1
             self.avatar_update_queue.put(
@@ -166,12 +174,34 @@ async def avatar_updates(avatars_update_queue):
             yield message
 
 
+async def rocket_control(session, bot, pos):
+    try:
+        while True:
+            await asyncio.sleep(0.1)
+            if pos["direction"] == "up":
+                pos["y"] -= 1
+            elif pos["direction"] == "down":
+                pos["y"] += 1
+            elif pos["direction"] == "left":
+                pos["x"] -= 1
+            elif pos["direction"] == "right":
+                pos["x"] += 1
+
+            await rctogether.bots.update(session, bot["id"], pos)
+    finally:
+        await rctogether.bots.delete(session, bot["id"])
+
+
+
 async def space_avatar_worker(avatar_queue):
+    rockets = []
     async with rctogether.RestApiSession() as session:
         bot_id = None
         for bot in await rctogether.bots.get(session):
             if bot["emoji"] == "👾":
                 bot_id = bot["id"]
+            else:
+                await rctogether.bots.delete(session, bot["id"])
 
         async for message in avatar_updates(avatar_queue):
             try:
@@ -195,11 +225,21 @@ async def space_avatar_worker(avatar_queue):
                     elif message["payload"]["action"] == "upload":
                         pass  # Not supported without getting the wall id.
                         # await walls.update(session, bot_id=bot_id, color=message['payload']['color'])
+                elif message["type"] == "rocket":
+                    pos = message["payload"]
+                    bot = await rctogether.bots.create(session, name="Alien Rocket", emoji="🚀", **pos)
+                    rockets.append(asyncio.create_task(rocket_control(session, bot, pos)))
             except rctogether.api.HttpError:
                 traceback.print_exc()
 
         if bot_id:
             await rctogether.bots.delete(session, bot_id)
+        for task in rockets:
+            task.cancel()
+            try:
+                await task
+            except asyncio.exceptions.CancelledError:
+                pass
 
 
 async def websocket_subscription(entity_queue):
