@@ -45,7 +45,9 @@ void main(void) {
 		discard; // Deleted!
 	}
 
-	vec4 albedo = interpolated_tex_coords.z >= 0 ? texture(texture_array_sampler, interpolated_tex_coords) : vec4(local_color, 1);
+	vec4 texture_color = interpolated_tex_coords.z >= 0 ? texture(texture_array_sampler, interpolated_tex_coords) : vec4(0, 0, 0, 0);
+
+	vec4 albedo = mix(vec4(local_color, 1.0), texture_color, texture_color.a);
 
 //	fragment_colour = texture_colour * interpolated_shading_value;
 //	if (texture_colour.a == 0.0) { // discard if texel's alpha component is 0 (texel is transparent)

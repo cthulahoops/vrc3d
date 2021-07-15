@@ -125,7 +125,7 @@ class World:
     def on_draw(self):
         self.camera.compute_matrices()
 
-        self.shadow_map.render(self.camera, self.astro.sun_altaz, [self.virtual_rc.building, self.virtual_rc.avatars])
+        self.shadow_map.render(self.camera, self.astro.sun_altaz, self.virtual_rc.scenes())
 
         gl.glViewport(0, 0, self.window.width, self.window.height)
         self.window.clear()

@@ -253,6 +253,14 @@ pytest = ">=5.4.0"
 testing = ["coverage", "hypothesis (>=5.7.1)"]
 
 [[package]]
+name = "python-freetype"
+version = "0.6"
+description = "language bindings for FreeType"
+category = "main"
+optional = false
+python-versions = "*"
+
+[[package]]
 name = "rctogether"
 version = "0.3.2"
 description = ""
@@ -334,7 +342,7 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8"
-content-hash = "8b67c790262c8293c3143ccdb7332fae828b3637fe3f123af39f5f9163093034"
+content-hash = "28177e2dd2805033bcd508a16839e734a95e3efcaacf45e9bc7205df30abe38e"
 
 [metadata.files]
 aiohttp = [
@@ -527,6 +535,9 @@ pytest = [
 pytest-asyncio = [
     {file = "pytest-asyncio-0.15.1.tar.gz", hash = "sha256:2564ceb9612bbd560d19ca4b41347b54e7835c2f792c504f698e05395ed63f6f"},
     {file = "pytest_asyncio-0.15.1-py3-none-any.whl", hash = "sha256:3042bcdf1c5d978f6b74d96a151c4cfb9dcece65006198389ccd7e6c60eb1eea"},
+]
+python-freetype = [
+    {file = "Python_FreeType-0.6-py32-none-any.whl", hash = "sha256:16f7849e2d8223f2dbd9aae0ac9d11bf7bbe4777b93eece48431eda22699b227"},
 ]
 rctogether = [
     {file = "rctogether-0.3.2-py3-none-any.whl", hash = "sha256:242c1629f9b8b2ec1f5bf7762eb83f1edb487397b5e624fdd4366618c317303d"},

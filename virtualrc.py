@@ -39,7 +39,7 @@ def get_mesh(entity_type, entity, texture):
     position = Vector(entity["pos"]["x"], 0, entity["pos"]["y"])
 
     if entity["type"] == "Wall":
-        return Cube(position, color=COLORS[entity["color"]])
+        return Cube(position, color=COLORS[entity["color"]], texture=texture)
     if entity["type"] == "Desk":
         leg_color = "#333333"
         mesh = Mesh()
@@ -50,11 +50,11 @@ def get_mesh(entity_type, entity, texture):
         mesh += Cube(position, Vector(0.04, 0.35, 0.04), color=leg_color, offset=Vector(0.4, 0, 0.4))
         return mesh
     if entity["type"] == "Avatar":
-        return Cube(position, Vector(0.05, 0.8, 0.4), color="#ffffff", texture=texture)
+        return Cube(position, Vector(0.05, 0.8, 0.4), color="#000000", texture=texture)
     if entity["type"] == "ZoomLink":
         return Cube(position, Vector(0.6, 0.6, 0.6), color="#0000ff", texture=texture)
-    if entity["type"] == "Bot":
-        return None
+    if entity["type"] == "Bot" and entity["emoji"] != "👾":
+        return Cube(position, Vector(0.4, 0.4, 0.4), color="#202020", texture=texture)
     if entity["type"] == "Link":
         return Cube(position, Vector(0.8, 0.8, 0.8), texture=texture)
     if entity["type"] == "Note":
@@ -91,7 +91,11 @@ class VirtualRc:
             "note",
             "zoom",
         ]:
-            self.building_textures.add_texture(name)
+            self.building_textures.add_texture_png(name)
+
+
+        self.glyph_textures = TextureCube(136, 128, 500)
+        self.glyphable = Scene()
 
         self.building = Scene()
         self.building.add_entity("floor", floor(self.building_textures))
@@ -102,12 +106,21 @@ class VirtualRc:
         self.avatars = Scene(max_vertices=10_000)
         self.camera = camera
 
+    def scenes(self):
+        return [self.glyphable, self.building, self.avatars]
+
     def draw(self, sun_position, shadow_map):
         self.shader.use()
         self.shader["sun_position"] = sun_position
         self.shader["matrix"] = self.camera.mvp_matrix
         self.shader["camera"] = self.camera.position
         self.shader["light_space_matrix"] = shadow_map.light_space_matrix
+
+        self.glyph_textures.activate(0)
+        shadow_map.activate(1)
+        self.shader["texture_array_sampler"] = 0
+        self.shader["shadow_map"] = 1
+        self.glyphable.draw()
 
         self.building_textures.activate(0)
         shadow_map.activate(1)
@@ -134,6 +147,8 @@ class VirtualRc:
 
         if entity_type == "Avatar":
             scene = self.avatars
+        elif entity_type in ("Wall", "Bot"):
+            scene = self.glyphable
         else:
             scene = self.building
 
@@ -153,9 +168,25 @@ class VirtualRc:
             y0, y1 = (-1.0, 1.0)
 
             try:
-                self.avatar_textures.add_texture(entity_id, PHOTOS[entity_id])
+                self.avatar_textures.add_texture_png(entity_id, PHOTOS[entity_id])
                 texture_index = self.avatar_textures.index(entity_id)
             except pyglet.gl.lib.GLException:
+                return None
+        elif entity_type == "Wall" and entity.get("wall_text"):
+            try:
+                self.glyph_textures.add_texture_glyph(entity["wall_text"])
+                texture_index = self.glyph_textures.index(entity["wall_text"])
+                x0, x1 = (0.0, 1.0)
+                y0, y1 = (1.0, 0.0)
+            except ValueError:
+                return None
+        elif entity_type == "Bot":
+            try:
+                self.glyph_textures.add_texture_glyph(entity["emoji"])
+                texture_index = self.glyph_textures.index(entity["emoji"])
+                x0, x1 = (0.0, 1.0)
+                y0, y1 = (1.0, 0.0)
+            except ValueError:
                 return None
         elif entity_type == "ZoomLink":
             texture_index = self.building_textures.index("zoom")
@@ -179,6 +210,8 @@ class VirtualRc:
         if entity.get("deleted"):
             if entity["type"] == "Avatar":
                 self.avatars.delete_entity(entity["id"])
+            elif entity["type"] in ("Wall", "Bot"):
+                self.glyphable.delete_entity(entity["id"])
             else:
                 self.building.delete_entity(entity["id"])
         else:
