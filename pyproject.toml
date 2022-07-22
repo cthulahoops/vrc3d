@@ -5,9 +5,9 @@ description = "3D Virtual RC"
 authors = ["Adam Kelly <adam@cthulahoops.org>"]
 
 [tool.poetry.dependencies]
-python = ">=3.8 <3.10"
+python = "^3.8"
 pyglet = "^1.5.18"
-rctogether = "^0.3.2"
+rctogether = "^0.3.3"
 aiohttp = "^3.7.4"
 skyfield = "^1.39"
 Python-FreeType = "^0.6"
